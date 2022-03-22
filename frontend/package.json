@@ -6,6 +6,7 @@
     "@testing-library/jest-dom": "^5.12.0",
     "@testing-library/react": "^11.2.7",
     "@testing-library/user-event": "^12.8.3",
+    "app": "^0.1.0",
     "bootstrap": "^5.0.2",
     "react": "^17.0.2",
     "react-bootstrap": "^2.0.2",
@@ -36,5 +37,9 @@
       "last 1 firefox version",
       "last 1 safari version"
     ]
-  }
+  },
+  "description": "this is a React.js application.   *Kudo to [React Tutorial: An Overview and Walkthrough By Tania Rascia](https://www.taniarascia.com/getting-started-with-react/)*",
+  "main": "index.js",
+  "author": "",
+  "license": "ISC"
 }

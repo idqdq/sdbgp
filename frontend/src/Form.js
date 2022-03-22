@@ -69,8 +69,10 @@ class Form extends Component {
                 }          
                 break;
             case 'next_hop':
-                if (value && (value === "null" || !IpAddrPattern.test(value))) {
-                    errors[name] = 'must be a valid IP address'
+                if (value) {
+                    if (value !== "null" && !IpAddrPattern.test(value)) {
+                        errors[name] = 'must be a valid IP address'
+                    }
                 }
                 break;
             default:

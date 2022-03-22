@@ -93,7 +93,7 @@ class App extends Component {
     }
 
     handleFormBulkSubmit = (bulkdata) => {
-        this.setState({ Data: [...this.state.Data, bulkdata]});
+        this.setState({ Data: [...this.state.Data, ...bulkdata]});
         this.hideBulkModal();
     }
 
