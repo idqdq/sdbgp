@@ -1,0 +1,101 @@
+from fastapi import FastAPI, Request, Response, Body, status, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.encoders import jsonable_encoder
+from fastapi.responses import JSONResponse
+from typing import List
+from models import PxDataClass
+
+app = FastAPI()
+
+## mongo start
+# first we'll be using fake data thus we could develop the frontend part of app without access to the real switchfabric
+# to store and retrieve such date mongodb is being used
+import motor.motor_asyncio
+
+@app.on_event("startup")
+async def create_db_client():
+    mdbclient = motor.motor_asyncio.AsyncIOMotorClient()
+    app.db = mdbclient.sdbgp
+
+@app.on_event("shutdown")
+async def shutdown_db_client():
+    # stop your client here
+    app.db.close()
+
+## mongo end
+
+## CORS
+origins = [    
+    "http://127.0.0.1",
+    "http://127.0.0.1:3000",
+    "http://localhost",
+    "http://localhost:3000",
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
+## CORS end
+
+## FastAPI Routes
+@app.get("/px", response_model=List[PxDataClass])
+async def getPrefixesAll():
+    prefixes = []
+        
+    async for px in app.db.px.find({}):
+        print(px)
+        prefixes.append(PxDataClass(**px))
+    
+    return prefixes
+
+
+@app.get("/px/{ip}", response_model=PxDataClass)  
+async def getPrefix(ip: str):
+    if (px := await app.db.px.find_one({"ip": ip})) is not None:
+        return px
+
+    raise HTTPException(status_code=404, detail=f"Prefix with ID: {id} not found")
+
+
+@app.post("/px")
+async def createPx(px: PxDataClass = Body(...)):
+    px = jsonable_encoder(px)    
+    
+    new_px = await app.db.px.insert_one(px)
+    created_px = await app.db.px.find_one({"_id": new_px.inserted_id})
+
+    return JSONResponse(status_code=status.HTTP_201_CREATED, content=created_px)
+
+
+@app.put("/px/{ip}", response_description="Update prefix", response_model=PxDataClass)
+async def updatePx(ip: str, px: PxDataClass = Body(...)):
+    px = jsonable_encoder(px)
+    # update model shoudn't include _id because mongo will not allow mutate _id in update procedure 
+    # so we have to create another data class for the update or just get rid of _id from the existed model 
+    px.pop("_id") 
+    
+    if (existed_px := await app.db.px.find_one({"ip": ip})) is not None:        
+        update_res = await app.db.px.update_one({"_id": existed_px["_id"] }, {"$set": px})
+        if update_res.modified_count == 1:
+            result = await app.db.px.find_one({"ip": ip})
+        else: 
+            result = existed_px            
+    else: 
+        raise HTTPException(status_code=404, detail=f"Prefix {px['ip']} not found")
+    
+    print(result)
+    return JSONResponse(status_code=status.HTTP_200_OK, content=result)
+  
+
+@app.delete("/px/{ip}", response_description="Delete Prefix")
+async def deletePx(ip: str):
+    delete_res = await app.db.px.delete_one({"ip": ip})
+    if delete_res.deleted_count == 1:
+        return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+    raise HTTPException(status_code=404, detail=f"Prefix {ip} not found")
+
