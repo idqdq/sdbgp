@@ -3,31 +3,38 @@ import React, { Component } from 'react'
 import Table from './Table'
 import { OneModal, BulkModal } from './Modal';
 
+const DEBUG = false;
 const URL = "http://127.0.0.1:8000/px"
 class App extends Component {
     state = {
         Data: [],        
+        View: [],
+        search: '',
         changes: {},
         isOneOpen: false,        
         isBulkOpen: false,        
         isFetching: true,
     }
 
+
     loaddata = async () => {
         const response = await fetch(URL);
         const data = await response.json();
-        this.setState({ Data: data, changes: {}, isFetching: false })
+        this.setState({ Data: data, View: data, search: '', changes: {}, isFetching: false })
     }
+
 
     async componentDidMount(){
         await this.loaddata();
     }
+
 
     openOneModal = () => {
         this.setState({
             isOneOpen: true
         });        
     }
+
 
     hideOneModal = () => {
         this.setState({
@@ -36,11 +43,13 @@ class App extends Component {
         delete this.state.index;
     }
 
+
     openBulkModal = () => {
         this.setState({
             isBulkOpen: true
         });        
     }
+
 
     hideBulkModal = () => {
         this.setState({
@@ -48,10 +57,14 @@ class App extends Component {
         });                
     }
 
+
     pxRemove = index => {
-        const { Data, changes } = this.state;
+        const { Data, View, changes } = this.state;
         
         const newData = Data.filter((char, i) => { 
+            return i !== index;
+        })
+        const newView = View.filter((char, i) => { 
             return i !== index;
         })
 
@@ -64,8 +77,9 @@ class App extends Component {
             changes[ip] = "del";
         }
 
-        this.setState({ Data: newData, changes: changes })        
+        this.setState({ Data: newData, View: newView, changes: changes })        
     }
+
 
     pxEdit = index => {
         this.setState({            
@@ -75,6 +89,7 @@ class App extends Component {
         this.openOneModal();
     }
     
+
     handleFormOneSubmit = (px, index) => {
         const { changes } = this.state;
         if (index != null) {
@@ -92,10 +107,24 @@ class App extends Component {
         this.hideOneModal();
     }
 
-    handleFormBulkSubmit = (bulkdata) => {
-        this.setState({ Data: [...this.state.Data, ...bulkdata]});
+
+    handleFormBulkSubmit = (bulkdata) => {     
+        const { Data } = this.state;      
+        const changes = {}
+
+        const newData = bulkdata.filter((b) => !Data.find((a) => a.ip === b.ip)); // uniqueness
+        newData.forEach(el => changes[el.ip] = "new");
+        
+        const fullData = [...Data, ...newData];
+        
+        this.setState({ 
+            Data: fullData, 
+            View: fullData,
+            changes: changes
+        });        
         this.hideBulkModal();
     }
+
 
     handleSubmit = () => {
         const { Data, changes } = this.state;        
@@ -123,6 +152,18 @@ class App extends Component {
         }
         this.setState({ changes: {}});
     }
+
+    stripData = (value) => {                
+        const View = this.state.Data.filter((item) => item.ip.startsWith(value));
+        this.setState ({ View: View, search: value});
+    }
+
+    handleSearchChange = (event) => {
+        const { value } = event.target;
+        this.stripData(value);
+    }
+
+
     restPostData = async (px) => {
         try {
             const res = await fetch(`${URL}`, {
@@ -140,16 +181,18 @@ class App extends Component {
 
             const data = await res.json();
 
-            const result = {
-                status: res.status + "-" + res.statusText,
-                headers: {
-                    "Content-Type": res.headers.get("Content-Type"),
-                    "Content-Length": res.headers.get("Content-Length"),
-                },
-                data: data,
-            };
+            if (DEBUG) {
+                const result = {
+                    status: res.status + "-" + res.statusText,
+                    headers: {
+                        "Content-Type": res.headers.get("Content-Type"),
+                        "Content-Length": res.headers.get("Content-Length"),
+                    },
+                    data: data,
+                };
+                alert(JSON.stringify(result, null, 4));
+            }
 
-            alert(JSON.stringify(result, null, 4));
         } catch (err) {
             alert(err.message);
         }
@@ -173,13 +216,14 @@ class App extends Component {
 
                 const data = await response.json();
 
-                const result = {
-                    status: response.status + "-" + response.statusText,
-                    headers: { "Content-Type": response.headers.get("Content-Type") },
-                    data: data,
-                };
-
-                alert(JSON.stringify(result, null, 4));
+                if (DEBUG) {
+                    const result = {
+                        status: response.status + "-" + response.statusText,
+                        headers: { "Content-Type": response.headers.get("Content-Type") },
+                        data: data,
+                    };
+                    alert(JSON.stringify(result, null, 4));
+                }
             } catch (err) {
                 alert(err)
             }
@@ -191,12 +235,13 @@ class App extends Component {
             try {
                 const response = await fetch(`${URL}/${ip}`, { method: "delete" });
                 //const data = await response.json();
+                if (DEBUG) {
+                    const result = {
+                        status: response.status,
+                    };
 
-                const result = {
-                    status: response.status,                   
-                };
-
-                alert(JSON.stringify(result, null, 4));
+                    alert(JSON.stringify(result, null, 4));
+                }
             } catch (err) {
                 alert(err);
             }
@@ -205,15 +250,60 @@ class App extends Component {
 
 
     render() {
-        const { Data, changes, index, isOneOpen, isBulkOpen } = this.state
+        const { Data, View, changes, index, isOneOpen, isBulkOpen, search } = this.state
+             
+        const searchStyle = {
+      //      margin: '20px 0px',
+        }
+        const search_floater = {
+            position: 'sticky',
+            top: '20px',          
+            left: '20px',   
+            margin: '20px 0px',         
+        }
+        const info_style = {
+            position: 'fixed',
+            top: '10px',          
+            right: '20px',   
+            margin: '20px 0px',         
+        }
         const buttonStyle = {
             margin: '0px 5px',
-        }
+        }   
+        const buttonsRowStyle = {
+            margin: '20px 0px',                        
+        }           
 
-        return (
+        return (            
             <div className="container">
-                <Table Data={Data} changes={changes} pxRemove={this.pxRemove} pxEdit={this.pxEdit}/>
-                <div>
+                {/* search box */}                    
+                <div className="search" style={search_floater}> <i className="fa fa-search"></i>
+                    <div class="input-group">
+                        <div class="form-floating">
+                            <input type="text"
+                                className="form-control"
+                                placeholder="Search"
+                                name="search"
+                                id="search"
+                                value={search || ''}
+                                onChange={this.handleSearchChange}
+                                style={searchStyle} />
+                            <label for="search" style={searchStyle}>Prefix search</label>
+                        </div>
+                    </div>
+                </div>
+                <div className="info" style={info_style}>
+                    <div>
+                        <label for="search">Total: {Data.length}</label>
+                    </div>
+                    <div>
+                        <label for="search">In View: {View.length}</label>
+                    </div>
+                </div>
+                
+                <Table Data={View} changes={changes} pxRemove={this.pxRemove} pxEdit={this.pxEdit}/>
+                
+                <div className="buttons" style={buttonsRowStyle}>
                     <button onClick={this.openOneModal} style={buttonStyle} type="button" className="btn btn-outline-primary">New Prefix</button>
                     <button onClick={this.openBulkModal} style={buttonStyle} type="button" className="btn btn-outline-primary">Bulk Load</button>
                     <button onClick={this.loaddata} style={buttonStyle} type="button" className="btn btn-outline-secondary">ReLoad</button>

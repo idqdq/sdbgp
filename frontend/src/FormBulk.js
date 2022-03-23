@@ -66,12 +66,16 @@ class FormBulk extends Component {
 
     render() {        
         const { value, next_hop } = this.state;
+        const taStyle = {
+            height: '200px',
+            width: '380px',
+        }
 
         return (            
             <form>
-                <label htmlFor="next-hop" className="col-sm-2 col-form-label">    Список префиксов:</label> 
+                <label htmlFor="next-hop" className="col-sm-4 col-form-label">Список префиксов:</label> 
                     <div className="col-sm-10">
-                        <textarea value={value} onChange={this.handleAreaChange} />
+                        <textarea value={value} onChange={this.handleAreaChange} style={taStyle}/>
                         <span style={{ color: "red" }}>{this.state.errors["ip"]}</span>
                     </div>
                 <label htmlFor="next-hop" className="col-sm-2 col-form-label">next-hop</label>  
@@ -82,7 +86,7 @@ class FormBulk extends Component {
                             name="next_hop"
                             id="next_hop"
                             value={next_hop || ''}
-                            placeholder="null"
+                            placeholder="null"                            
                             onChange={this.handleNHChange}
                             onBlur={this.handleBlur} />
                         <span style={{ display: "block" }}><small className="form-text text-muted"><i>next-hop (default null)</i></small></span>

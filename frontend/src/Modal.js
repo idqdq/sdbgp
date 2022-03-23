@@ -1,5 +1,4 @@
 import Modal from "react-bootstrap/Modal";
-//import "bootstrap/dist/css/bootstrap.min.css";
 import Form from './Form'
 import FormBulk from './FormBulk'
 
