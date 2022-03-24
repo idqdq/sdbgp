@@ -1,9 +1,11 @@
+from multiprocessing.managers import BaseManager
 from fastapi import FastAPI, Request, Response, Body, status, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse
 from typing import List
-from models import PxDataClass
+from gobgp_api import AddPath, DelPath, ListPath
+from models import PxDataClass, PathDataClass
 
 app = FastAPI()
 
@@ -99,3 +101,50 @@ async def deletePx(ip: str):
 
     raise HTTPException(status_code=404, detail=f"Prefix {ip} not found")
 
+
+### GoBGP Section ###
+@app.post("/gobgp/add") # adds prefix into gobgp
+async def gobgp_addpath(px: PathDataClass = Body(...)):
+    AddPath(prefix=px.ip, prefix_len=px.mask_cidr, nh=px.next_hop)
+
+@app.post("/gobgp/del") # deletes prefix from gobgp
+async def gobgp_delpath(px: PathDataClass = Body(...)):
+    DelPath(prefix=px.ip, prefix_len=px.mask_cidr, nh=px.next_hop)
+
+@app.get("/gobgp/list") # returns all the prefixes from within gobgp
+async def gobgp_listall():    
+    result = ListPath()
+    return JSONResponse(status_code=status.HTTP_200_OK, content=result)
+
+@app.get("/gobgp/dumpall") # Puts all the prefixes from Mongo to GoBGP
+async def gobgp_dumpAll():
+    async for px in app.db.px.find({}):
+        px = PathDataClass(**px)
+        AddPath(prefix=px.ip, prefix_len=px.mask_cidr, nh=px.next_hop)
+
+@app.get("/gobgp/delallfromdb") # Deletes all the prefixes from GoBGP existing in Mongo 
+async def gobgp_dumpAll():
+    async for px in app.db.px.find({}):
+        px = PathDataClass(**px)
+        DelPath(prefix=px.ip, prefix_len=px.mask_cidr, nh=px.next_hop)
+
+@app.get("/gobgp/loadall") # Loads all the prefixes from GoBGP to Mongo
+async def gobgp_loadall():    
+    paths = ListPath()
+
+    if paths:
+        await app.db.px.drop({})
+        for path in paths:
+            ip, mask = path.split('/')
+            px = dict(ip=ip, mask_cidr=mask, next_hop='0.0.0.0')
+            new_px = await app.db.px.insert_one(px)                
+
+    return JSONResponse(status_code=status.HTTP_200_OK, content="OK")       
+
+@app.get("/gobgp/delall") # Deletes all the prefixes from GoBGP
+async def gobgp_delall():
+    paths = ListPath()
+    if paths:
+        for path in paths:
+            ip, mask = path.split('/')
+            DelPath(prefix=ip, prefix_len=mask, nh="0.0.0.0")

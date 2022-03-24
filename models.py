@@ -43,3 +43,18 @@ class PxDataClass(BaseModel):
         if v != "null":
             assert IPv4Address(v), "next hop should be a valid IPv4 address"            
         return v
+
+
+class PathDataClass(BaseModel):
+    ip: str
+    mask_cidr: int = Field(32, ge=16, le=32)
+    next_hop: str
+
+    class Config:
+        schema_extra = {
+            "example": {
+                "ip": "1.2.3.4",
+                "mask_cidr": "32",
+                "next_hop": "1.1.1.1"
+            }
+        }
