@@ -6,7 +6,7 @@ class FormBulk extends Component {
         super(props);
         this.state = {
             Data: '', 
-            next_hop: 'null',
+            next_hop: '0.0.0.0',
             errors: {},
             formValid: true,
         };  
@@ -86,10 +86,10 @@ class FormBulk extends Component {
                             name="next_hop"
                             id="next_hop"
                             value={next_hop || ''}
-                            placeholder="null"                            
+                            placeholder="0.0.0.0"                            
                             onChange={this.handleNHChange}
                             onBlur={this.handleBlur} />
-                        <span style={{ display: "block" }}><small className="form-text text-muted"><i>next-hop (default null)</i></small></span>
+                        <span style={{ display: "block" }}><small className="form-text text-muted"><i>next-hop (default 0.0.0.0)</i></small></span>
                         <span style={{ color: "red" }}>{this.state.errors["next_hop"]}</span>
                     </div>
                 <input type="button" value="Submit" onClick={this.submitForm} disabled={!this.state.formValid} className="btn btn-outline-success" /> 

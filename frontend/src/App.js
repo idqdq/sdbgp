@@ -60,16 +60,17 @@ class App extends Component {
 
     pxRemove = index => {
         const { Data, View, changes } = this.state;
-        
-        const newData = Data.filter((char, i) => { 
-            return i !== index;
+        const px = View[index];
+
+        const newData = Data.filter((item) => { 
+            return !(px.ip===item.ip && px.mask_cidr===item.mask_cidr);
         })
         const newView = View.filter((char, i) => { 
             return i !== index;
         })
 
         // if you've just created a new prefix and then delete it, no change happened
-        const ip = Data[index].ip;
+        const ip = View[index].ip;
         if (changes[ip]==="new"){
             delete changes[ip];
         }
@@ -90,19 +91,22 @@ class App extends Component {
     }
     
 
-    handleFormOneSubmit = (px, index) => {
-        const { changes } = this.state;
-        if (index != null) {
-            
-            const newData = this.state.Data.slice();
-            newData[index] = px; // replace old data with a new one in the array
-            
+    handleFormOneSubmit = (px, viewindex) => {
+        const { Data, View, changes } = this.state;
+        if (viewindex != null) {             
+            const dataindex = Data.indexOf(View[viewindex]); // find Data.index for the old unchanged data
+            const newData = Data.slice();
+            const newView = View.slice();                                
+
+            newView[viewindex] = px; // replace old data with a new one in the View array
+            newData[dataindex] = px; // replace old data with a new one in the Data array
+                        
             changes[px.ip] = "edit";
-            this.setState({ Data: newData, changes: changes });
+            this.setState({ Data: newData, View: newView, changes: changes });
         }
         else {
             changes[px.ip] = "new";
-            this.setState({ Data: [...this.state.Data, px], changes: changes });
+            this.setState({ Data: [...Data, px], View: [...View, px], changes: changes });
         }
         this.hideOneModal();
     }
@@ -129,21 +133,21 @@ class App extends Component {
     handleSubmit = () => {
         const { Data, changes } = this.state;        
 
-        for (let item in changes) {            
-            const index = Data.findIndex(x => x.ip===item);            
+        for (let ip in changes) {            
+            const index = Data.findIndex(x => x.ip===ip);            
             const px = Data[index];            
 
-            switch (changes[item]) {              
+            switch (changes[ip]) {              
                 case "new":                    
                     this.restPostData(px); 
                     break;
 
                 case "edit":                    
-                    this.restPutData(item, px)
+                    this.restPutData(px)
                     break;
 
                 case "del":                                        
-                    this.restDeleteData(item); 
+                    this.restDeleteData(ip); 
                     break;
 
                 default:
@@ -278,8 +282,8 @@ class App extends Component {
             <div className="container">
                 {/* search box */}                    
                 <div className="search" style={search_floater}> <i className="fa fa-search"></i>
-                    <div class="input-group">
-                        <div class="form-floating">
+                    <div className="input-group">
+                        <div className="form-floating">
                             <input type="text"
                                 className="form-control"
                                 placeholder="Search"
@@ -288,16 +292,16 @@ class App extends Component {
                                 value={search || ''}
                                 onChange={this.handleSearchChange}
                                 style={searchStyle} />
-                            <label for="search" style={searchStyle}>Prefix search</label>
+                            <label htmlFor="search" style={searchStyle}>Prefix search</label>
                         </div>
                     </div>
                 </div>
                 <div className="info" style={info_style}>
                     <div>
-                        <label for="search">Total: {Data.length}</label>
+                        <label htmlFor="search">Total: {Data.length}</label>
                     </div>
                     <div>
-                        <label for="search">In View: {View.length}</label>
+                        <label htmlFor="search">In View: {View.length}</label>
                     </div>
                 </div>
                 
@@ -309,7 +313,7 @@ class App extends Component {
                     <button onClick={this.loaddata} style={buttonStyle} type="button" className="btn btn-outline-secondary">ReLoad</button>
                     <button onClick={this.handleSubmit} disabled={Object.keys(changes).length===0} style={buttonStyle} type="button" className="btn btn-outline-danger">Submit</button>
                 </div>
-                <OneModal Data={Data} changes={changes} index={index} isOpen={isOneOpen} hideModal={this.hideOneModal} handleFormSubmit={this.handleFormOneSubmit}/>                           
+                <OneModal Data={View} changes={changes} index={index} isOpen={isOneOpen} hideModal={this.hideOneModal} handleFormSubmit={this.handleFormOneSubmit}/>                           
                 <BulkModal isOpen={isBulkOpen} hideModal={this.hideBulkModal} handleFormSubmit={this.handleFormBulkSubmit}/>                           
             </div>
         )

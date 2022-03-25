@@ -70,7 +70,7 @@ class Form extends Component {
                 break;
             case 'next_hop':
                 if (value) {
-                    if (value !== "null" && !IpAddrPattern.test(value)) {
+                    if (!IpAddrPattern.test(value)) {
                         errors[name] = 'must be a valid IP address'
                     }
                 }
@@ -137,10 +137,10 @@ class Form extends Component {
                             name="next_hop"
                             id="next_hop"
                             value={next_hop || ''}
-                            placeholder="null"
+                            placeholder="0.0.0.0"
                             onChange={this.handleChange}
                             onBlur={this.handleBlur} />
-                        <span style={{ display: "block" }}><small className="form-text text-muted"><i>next-hop (default null)</i></small></span>
+                        <span style={{ display: "block" }}><small className="form-text text-muted"><i>next-hop (default 0.0.0.0)</i></small></span>
                         <span style={{ color: "red" }}>{this.state.errors["next_hop"]}</span>
                     </div>
                 </div>        

@@ -1,4 +1,3 @@
-from multiprocessing.managers import BaseManager
 from fastapi import FastAPI, Request, Response, Body, status, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.encoders import jsonable_encoder

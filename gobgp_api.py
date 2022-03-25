@@ -86,7 +86,10 @@ def ListPath() -> list:
 
     res = []
     for prefix in prefixes:
-        print(prefix.destination.prefix)
-        res.append(prefix.destination.prefix)
+        px = prefix.destination.prefix
+        nh = prefix.destination.paths[0].pattrs[1].value.decode()
+        print(f"{px=}, {nh=}")
+        res.append(px)
+        
     
     return res
