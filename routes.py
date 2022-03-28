@@ -43,36 +43,39 @@ app.add_middleware(
 ## CORS end
 
 ## FastAPI Routes
-@app.get("/px", response_model=List[PxDataClass])
+@app.get("/px", response_model=List[PathDataClass])
 async def getPrefixesAll():
     prefixes = []
         
     async for px in app.db.px.find({}):
+        px.pop("_id")
         print(px)
-        prefixes.append(PxDataClass(**px))
+        prefixes.append(PathDataClass(**px))
     
     return prefixes
 
 
-@app.get("/px/{ip}", response_model=PxDataClass)  
+@app.get("/px/{ip}", response_model=PathDataClass)  
 async def getPrefix(ip: str):
     if (px := await app.db.px.find_one({"ip": ip})) is not None:
-        return px
+        px.pop("_id")
+        return PathDataClass(**px)
 
     raise HTTPException(status_code=404, detail=f"Prefix with ID: {id} not found")
 
 
 @app.post("/px")
-async def createPx(px: PxDataClass = Body(...)):
+async def createPx(px: PathDataClass = Body(...)):
     px = jsonable_encoder(px)    
     
     new_px = await app.db.px.insert_one(px)
     created_px = await app.db.px.find_one({"_id": new_px.inserted_id})
+    created_px.pop("_id")
 
     return JSONResponse(status_code=status.HTTP_201_CREATED, content=created_px)
 
 
-@app.put("/px/{ip}", response_description="Update prefix", response_model=PxDataClass)
+@app.put("/px/{ip}", response_description="Update prefix", response_model=PathDataClass)
 async def updatePx(ip: str, px: PxDataClass = Body(...)):
     px = jsonable_encoder(px)
     # update model shoudn't include _id because mongo will not allow mutate _id in update procedure 
@@ -84,7 +87,8 @@ async def updatePx(ip: str, px: PxDataClass = Body(...)):
         if update_res.modified_count == 1:
             result = await app.db.px.find_one({"ip": ip})
         else: 
-            result = existed_px            
+            result = existed_px
+        result.pop("_id")
     else: 
         raise HTTPException(status_code=404, detail=f"Prefix {px['ip']} not found")
     
@@ -104,28 +108,33 @@ async def deletePx(ip: str):
 ### GoBGP Section ###
 @app.post("/gobgp/add") # adds prefix into gobgp
 async def gobgp_addpath(px: PathDataClass = Body(...)):
-    AddPath(prefix=px.ip, prefix_len=px.mask_cidr, nh=px.next_hop)
+    AddPath(px)
+
 
 @app.post("/gobgp/del") # deletes prefix from gobgp
 async def gobgp_delpath(px: PathDataClass = Body(...)):
-    DelPath(prefix=px.ip, prefix_len=px.mask_cidr, nh=px.next_hop)
+    DelPath(px)
+
 
 @app.get("/gobgp/list") # returns all the prefixes from within gobgp
 async def gobgp_listall():    
     result = ListPath()
     return JSONResponse(status_code=status.HTTP_200_OK, content=result)
 
+
 @app.get("/gobgp/dumpall") # Puts all the prefixes from Mongo to GoBGP
 async def gobgp_dumpAll():
-    async for px in app.db.px.find({}):
-        px = PathDataClass(**px)
-        AddPath(prefix=px.ip, prefix_len=px.mask_cidr, nh=px.next_hop)
+    async for px in app.db.px.find({}): 
+        px.pop("_id")       
+        AddPath(PathDataClass(**px))
+
 
 @app.get("/gobgp/delallfromdb") # Deletes all the prefixes from GoBGP existing in Mongo 
 async def gobgp_dumpAll():
-    async for px in app.db.px.find({}):
-        px = PathDataClass(**px)
-        DelPath(prefix=px.ip, prefix_len=px.mask_cidr, nh=px.next_hop)
+    async for px in app.db.px.find({}):   
+        px.pop("_id")     
+        DelPath(PathDataClass(**px))
+
 
 @app.get("/gobgp/loadall") # Loads all the prefixes from GoBGP to Mongo
 async def gobgp_loadall():    
@@ -133,17 +142,16 @@ async def gobgp_loadall():
 
     if paths:
         await app.db.px.drop({})
-        for path in paths:
-            ip, mask = path.split('/')
-            px = dict(ip=ip, mask_cidr=mask, next_hop='0.0.0.0')
-            new_px = await app.db.px.insert_one(px)                
+        for path in paths:                        
+            new_px = await app.db.px.insert_one(path)             
 
     return JSONResponse(status_code=status.HTTP_200_OK, content="OK")       
+
 
 @app.get("/gobgp/delall") # Deletes all the prefixes from GoBGP
 async def gobgp_delall():
     paths = ListPath()
     if paths:
-        for path in paths:
-            ip, mask = path.split('/')
-            DelPath(prefix=ip, prefix_len=mask, nh="0.0.0.0")
+        for px in paths:                                    
+            DelPath(PathDataClass(**px))
+            
