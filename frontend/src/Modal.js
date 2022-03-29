@@ -1,6 +1,7 @@
 import Modal from "react-bootstrap/Modal";
 import Form from './Form'
 import FormBulk from './FormBulk'
+import './spinner.css'
 
 const OneModal = (props) => {
     const modalTitle = props.index!==undefined && props.Data[props.index] ? 'Edit Prefix:' + props.Data[props.index].ip : 'New Prefix';
@@ -38,4 +39,17 @@ const BulkModal = (props) => {
     )
 };
 
-export { OneModal, BulkModal, }
+const SpinerModal = (props) => {
+    
+    return (
+        <Modal show={props.isOpen}
+        backdrop="static"
+        fullscreen="true"        
+        centered="true"        
+        keyboard={false}>            
+            <div id="blabla" className="spinner"></div>            
+        </Modal>        
+        )
+}
+
+export { OneModal, BulkModal, SpinerModal}

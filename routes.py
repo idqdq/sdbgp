@@ -74,6 +74,14 @@ async def createPx(px: PathDataClass = Body(...)):
 
     return JSONResponse(status_code=status.HTTP_201_CREATED, content=created_px)
 
+@app.post("/px/bulk")
+async def createBulkPx(pxlist: List[PathDataClass]):
+    pxlist = jsonable_encoder(pxlist)    
+    
+    for px in pxlist:
+        new_px = await app.db.px.insert_one(px)      
+
+    return JSONResponse(status_code=status.HTTP_201_CREATED, content="Ok")
 
 @app.put("/px/{ip}", response_description="Update prefix", response_model=PathDataClass)
 async def updatePx(ip: str, px: PxDataClass = Body(...)):
@@ -105,7 +113,7 @@ async def deletePx(ip: str):
     raise HTTPException(status_code=404, detail=f"Prefix {ip} not found")
 
 
-### GoBGP Section ###
+### GoBGP API Section ###
 @app.post("/gobgp/add") # adds prefix into gobgp
 async def gobgp_addpath(px: PathDataClass = Body(...)):
     AddPath(px)
@@ -122,13 +130,6 @@ async def gobgp_listall():
     return JSONResponse(status_code=status.HTTP_200_OK, content=result)
 
 
-@app.get("/gobgp/dumpall") # Puts all the prefixes from Mongo to GoBGP
-async def gobgp_dumpAll():
-    async for px in app.db.px.find({}): 
-        px.pop("_id")       
-        AddPath(PathDataClass(**px))
-
-
 @app.get("/gobgp/delallfromdb") # Deletes all the prefixes from GoBGP existing in Mongo 
 async def gobgp_dumpAll():
     async for px in app.db.px.find({}):   
@@ -136,22 +137,33 @@ async def gobgp_dumpAll():
         DelPath(PathDataClass(**px))
 
 
-@app.get("/gobgp/loadall") # Loads all the prefixes from GoBGP to Mongo
-async def gobgp_loadall():    
-    paths = ListPath()
-
-    if paths:
-        await app.db.px.drop({})
-        for path in paths:                        
-            new_px = await app.db.px.insert_one(path)             
-
-    return JSONResponse(status_code=status.HTTP_200_OK, content="OK")       
-
-
-@app.get("/gobgp/delall") # Deletes all the prefixes from GoBGP
-async def gobgp_delall():
+@app.get("/gobgp/delallrib") # Deletes all the prefixes from GoBGP
+async def gobgp_delallrib():
     paths = ListPath()
     if paths:
         for px in paths:                                    
             DelPath(PathDataClass(**px))
             
+
+### GoBGP to/from Mongo API section ###
+@app.get("/gobgp/db2rib") # Puts all the prefixes from Mongo to GoBGP
+async def gobgp_db2rib():
+    async for px in app.db.px.find({}): 
+        px.pop("_id")       
+        AddPath(PathDataClass(**px))
+
+
+@app.get("/gobgp/rib2db") # Loads all the prefixes from GoBGP to Mongo
+async def gobgp_rib2db():    
+    paths = ListPath()
+    if paths:
+        await app.db.px.drop({})
+        for path in paths:                        
+            new_px = await app.db.px.insert_one(path)             
+    return JSONResponse(status_code=status.HTTP_200_OK, content="OK")       
+
+
+@app.get("/gobgp/cleardb") # Loads all the prefixes from GoBGP to Mongo
+async def gobgp_cleardb():    
+    await app.db.px.drop({})    
+    return JSONResponse(status_code=status.HTTP_200_OK, content="OK")       
