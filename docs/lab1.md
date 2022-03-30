@@ -80,7 +80,7 @@ so let's create it with the following content:
 ```
 Now it's time to run a gobgp container 
 ```bash
-> $ docker run -dit -v $(pwd):/config --name gobgp_234 --privileged --net net1 -p179:179 -p50051:50051 jauderho/gobgp:v2.34.0
+> $ docker run -dit -v $(pwd):/config --name gobgp_234 --privileged --net net1 -p50051:50051 jauderho/gobgp:v2.34.0
 ```
 Add the **net2** network to the container:
 ```bash
@@ -107,10 +107,9 @@ Success! LAB1 is deployed successfully and ready to go
 ---  
 **Note**
 The IP addresses should be 172.22.0.2 and 172.22.0.3 for frr and gobgp respectively.
-assigned IP addresses depend on the order in which the container connects to the network2
-bgp configurations depend on these IP addresses
-to find out the IP addresses, use *docker inspect* command, and in case the addresses differ, edit the bgp configurations. 
-
+assigned IP addresses depend on the order in which the container connects to the network2  
+bgp configurations depend on these IP addresses  
+to find out the IP addresses, use *docker inspect* command, and in case the addresses differ, edit the bgp configurations.  
 
 ## Running the App
 
