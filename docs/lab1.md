@@ -107,7 +107,7 @@ Success! LAB1 is deployed successfully and ready to go
 ---  
 **Note**
 The IP addresses should be 172.22.0.2 and 172.22.0.3 for frr and gobgp respectively.
-assigned IP addresses depend on the order in which the container connects to the network2  
+assigned IP addresses depend on the order in which the container connects to the network **net2**  
 bgp configurations depend on these IP addresses  
 to find out the IP addresses, use *docker inspect* command, and in case the addresses differ, edit the bgp configurations.  
 
