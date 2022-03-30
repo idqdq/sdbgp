@@ -78,9 +78,13 @@ so let's create it with the following content:
     neighbor-address = "172.22.0.2"
     peer-as = 65100
 ```
-Now it's time to run a container: 
+Now it's time to run a gobgp container 
 ```bash
 > $ docker run -dit -v $(pwd):/config --name gobgp_234 --privileged --net net1 -p179:179 -p50051:50051 jauderho/gobgp:v2.34.0
+```
+Add the **net2** network to the container:
+```bash
+> $ docker network connect net2 gobgp_234
 ```
 make sure the container is up and running:
 ```bash
@@ -97,7 +101,16 @@ $ docker exec -it gobgp_234 gobgp nei
 Peer          AS  Up/Down State       |#Received  Accepted
 172.22.0.2 65100 01:57:43 Establ      |        0         0
 ```
-So the LAB1 is deployed successfully and ready to go
+
+Success! LAB1 is deployed successfully and ready to go  
+
+---  
+**Note**
+The IP addresses should be 172.22.0.2 and 172.22.0.3 for frr and gobgp respectively.
+assigned IP addresses depend on the order in which the container connects to the network2
+bgp configurations depend on these IP addresses
+to find out the IP addresses, use *docker inspect* command, and in case the addresses differ, edit the bgp configurations. 
+
 
 ## Running the App
 
@@ -110,6 +123,7 @@ The APP has front and back parts that shoud be running independently
 ```
 2. the front
 ```bash
+> $ cd frontend
 > $ npm start
 ```
 
