@@ -140,9 +140,9 @@ class App extends Component {
 
         if (Object.keys(changes).length > 10) {
             // bulk processing
-            const arrnew = []//changes.filter((o) => Object.values(o)[0] === "new");
-            const arredit = []//changes.filter((o) => Object.values(o)[0] === "edit");
-            const arrdel = []//changes.filter((o) => Object.values(o)[0] === "del");
+            const arrnew = []
+            const arredit = []
+            const arrdel = []
             
             for (let ip in changes){
                 switch(changes[ip]){
@@ -264,7 +264,7 @@ class App extends Component {
                 throw new Error(message);
             }
 
-            const data = await res.json();
+            await res.json();
             //alert("DB is empty");
             this.loaddata();
 
@@ -283,7 +283,7 @@ class App extends Component {
                 throw new Error(message);
             }
 
-            const data = await res.json();
+            await res.json();
             this.setState({ isFetching: false, checkbx: false })
             //alert("RIB is empty");
 
@@ -452,14 +452,14 @@ class App extends Component {
                         <input onChange={this.handleCheckbx} style={checkStyle} checked={checkbx} className="form-check-input" type="checkbox" id="checkbox_id" name="checkbx"></input>
                         <label htmlFor="checkbx" style={checkLabelStyle}>enable DB/RIB actions</label>
                     </div>
-                    <button onClick={this.handleRIB2DB} disabled={!checkbx} style={buttonStyle} type="button" className="btn btn-outline-dark">RIB => DB</button>
-                    <button onClick={this.handleDB2RIB} disabled={!checkbx || Object.keys(changes).length!==0} style={buttonStyle} type="button" className="btn btn-outline-dark">DB => RIB </button>
+                    <button onClick={this.handleRIB2DB} disabled={!checkbx} style={buttonStyle} type="button" className="btn btn-outline-dark">{'RIB => DB'}</button>
+                    <button onClick={this.handleDB2RIB} disabled={!checkbx || Object.keys(changes).length!==0} style={buttonStyle} type="button" className="btn btn-outline-dark">{'DB => RIB'}</button>
                     <button onClick={this.handleClearDB} disabled={!checkbx} style={buttonStyle} type="button" className="btn btn-outline-dark">Clear DB</button>
                     <button onClick={this.handleClearRIB} disabled={!checkbx} style={buttonStyle} type="button" className="btn btn-outline-dark">Clear RIB</button>
                 </div>
                 <OneModal Data={View} changes={changes} index={index} isOpen={isOneOpen} hideModal={this.hideOneModal} handleFormSubmit={this.handleFormOneSubmit}/>                           
                 <BulkModal isOpen={isBulkOpen} hideModal={this.hideBulkModal} handleFormSubmit={this.handleFormBulkSubmit}/>
-                <SpinerModal isOpen={isFetching}/>                  
+                <SpinerModal show={isFetching}/>                  
             </div>
         )
     }

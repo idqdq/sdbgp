@@ -10,7 +10,7 @@ import attribute_pb2
 from models import PathDataClass
 
 _TIMEOUT_SECONDS = 10
-_GOBGP_CONN = '10.2.1.96:50051'
+_GOBGP_CONN = '127.0.0.1:50051'
 
 family=gobgp_pb2.Family(afi=gobgp_pb2.Family.AFI_IP, safi=gobgp_pb2.Family.SAFI_UNICAST)
 table_type=gobgp_pb2.GLOBAL

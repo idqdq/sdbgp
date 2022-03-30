@@ -49,7 +49,7 @@ async def getPrefixesAll():
         
     async for px in app.db.px.find({}):
         px.pop("_id")
-        print(px)
+        #print(px)
         prefixes.append(PathDataClass(**px))
     
     return prefixes

@@ -40,16 +40,13 @@ const BulkModal = (props) => {
 };
 
 const SpinerModal = (props) => {
-    
-    return (
-        <Modal show={props.isOpen}
-        backdrop="static"
-        fullscreen="true"        
-        centered="true"        
-        keyboard={false}>            
-            <div id="blabla" className="spinner"></div>            
-        </Modal>        
+    if (props.show)
+        return (
+            <div className="modal-spinner">
+                <div id="blabla" className="spinner"></div>
+            </div>
         )
+    else return null;
 }
 
 export { OneModal, BulkModal, SpinerModal}
