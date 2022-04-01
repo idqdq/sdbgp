@@ -1,6 +1,7 @@
 import React, { Component } from 'react'
 import Table from './Table'
 import { OneModal, BulkModal, SpinerModal } from './Modal';
+import AppTabs from './Tabs';
 
 const DEBUG = false;
 const URL_MONGO_API = "http://127.0.0.1:8000/px"
@@ -138,7 +139,7 @@ class App extends Component {
         const { Data, changes } = this.state;                
         this.setState(() => ({ isFetching: true }));
 
-        if (Object.keys(changes).length > 10) {
+        if (Object.keys(changes).length > 3) {
             // bulk processing
             const arrnew = []
             const arredit = []
@@ -171,36 +172,31 @@ class App extends Component {
                 return BulkData;
             }
 
-            const DataNew = prepareBulkData(arrnew);
-            const DataEdit = prepareBulkData(arredit);
-            const DataDel = prepareBulkData(arrdel);
+            arrdel.forEach((ip) => this.restDelData(ip));
 
+            const DataNew = prepareBulkData(arrnew);
             this.restPostData(DataNew, true); // bulk = true
 
+            const DataEdit = prepareBulkData(arredit);
             DataEdit.forEach((px) => this.restPutData(px));
-            DataDel.forEach((px) => this.restDelData(px));
-                        
-        } else {           
+        } 
+        else {
             // one_by_one processing 
             for (let ip in changes) {
-                const index = Data.findIndex(x => x.ip === ip);
-                const px = Data[index];
 
-                switch (changes[ip]) {
-                    case "new":
+                if (changes[ip] === "del") {
+                    this.restDelData(ip);
+                }
+                else {
+                    const index = Data.findIndex(x => x.ip === ip);
+                    const px = Data[index];
+
+                    if (changes[ip] === "new") {
                         this.restPostData(px);
-                        break;
-
-                    case "edit":
+                    }
+                    if (changes[ip] === "edit") {
                         this.restPutData(px)
-                        break;
-
-                    case "del":
-                        this.restDelData(ip);
-                        break;
-
-                    default:
-                        console.log("incorrect value in the changes")
+                    }
                 }
             }
         }
@@ -411,8 +407,9 @@ class App extends Component {
             //fontStyle: 'oblique',  
             opacity: '0.7',          
         }
-        return (            
+        return (                        
             <div className="container">
+                <AppTabs />
                 {/* search box */}                    
                 <div className="search" style={search_floater}> <i className="fa fa-search"></i>
                     <div className="input-group">
