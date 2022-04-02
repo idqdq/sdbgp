@@ -3,7 +3,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse
 from typing import List
-from gobgp_api import AddPath, DelPath, ListPath
+from gobgp_api_unicast import AddPath, DelPath, ListPath
 from models import PxDataClass, PathDataClass
 
 app = FastAPI()

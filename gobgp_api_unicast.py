@@ -4,19 +4,19 @@ from __future__ import print_function
 import grpc
 from google.protobuf.any_pb2 import Any
 
-import gobgp_pb2
-import gobgp_pb2_grpc
-import attribute_pb2
+from grpclib import gobgp_pb2, gobgp_pb2_grpc, attribute_pb2
 from models import PathDataClass
 
-_TIMEOUT_SECONDS = 10
-_GOBGP_CONN = '127.0.0.1:50051'
 
-family=gobgp_pb2.Family(afi=gobgp_pb2.Family.AFI_IP, safi=gobgp_pb2.Family.SAFI_UNICAST)
+GOBGP_CONN = '127.0.0.1:50051'
+TIMEOUT_SECONDS = 10
+ORIGIN_INCOMPLETE = 2
+
+IPv4_UNICAST=gobgp_pb2.Family(afi=gobgp_pb2.Family.AFI_IP, safi=gobgp_pb2.Family.SAFI_UNICAST)
 table_type=gobgp_pb2.GLOBAL
 
 def AddPath(px: PathDataClass):
-    channel = grpc.insecure_channel(_GOBGP_CONN)
+    channel = grpc.insecure_channel(GOBGP_CONN)
     stub = gobgp_pb2_grpc.GobgpApiStub(channel)
 
     nlri = Any()
@@ -26,7 +26,7 @@ def AddPath(px: PathDataClass):
     ))
 
     origin = Any()
-    origin.Pack(attribute_pb2.OriginAttribute(origin=2,))  # INCOMPLETE
+    origin.Pack(attribute_pb2.OriginAttribute(origin=ORIGIN_INCOMPLETE,))  # INCOMPLETE
     
     next_hop = Any()
     next_hop.Pack(attribute_pb2.NextHopAttribute(
@@ -40,15 +40,15 @@ def AddPath(px: PathDataClass):
             path=gobgp_pb2.Path(
                 nlri=nlri,
                 pattrs=attributes,
-                family=family,
+                family=IPv4_UNICAST,
             )
         ),
-        _TIMEOUT_SECONDS,
+        TIMEOUT_SECONDS,
     )    
 
 
 def DelPath(px: PathDataClass):
-    channel = grpc.insecure_channel(_GOBGP_CONN)
+    channel = grpc.insecure_channel(GOBGP_CONN)
     stub = gobgp_pb2_grpc.GobgpApiStub(channel)
 
     nlri = Any()
@@ -66,23 +66,23 @@ def DelPath(px: PathDataClass):
             path=gobgp_pb2.Path(
                 nlri=nlri,    
                 pattrs=[next_hop],
-                family=family,
+                family=IPv4_UNICAST,
             )
         ),
-        _TIMEOUT_SECONDS,
+        TIMEOUT_SECONDS,
     )
 
 
 def ListPath() -> list:
-    channel = grpc.insecure_channel(_GOBGP_CONN)
+    channel = grpc.insecure_channel(GOBGP_CONN)
     stub = gobgp_pb2_grpc.GobgpApiStub(channel)
 
     paths = stub.ListPath(
         gobgp_pb2.ListPathRequest(
             table_type=table_type,
-            family=family,
+            family=IPv4_UNICAST,
         ),
-        _TIMEOUT_SECONDS, 
+        TIMEOUT_SECONDS, 
     )
 
     res = []

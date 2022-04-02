@@ -21,6 +21,7 @@ const OneModal = (props) => {
     )
 };
 
+
 const BulkModal = (props) => {
     const modalTitle = 'Bulk Prefix loads';
     return (
@@ -38,6 +39,7 @@ const BulkModal = (props) => {
         </Modal>
     )
 };
+
 
 const SpinerModal = (props) => {
     if (props.show)
