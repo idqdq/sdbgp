@@ -5,7 +5,7 @@ const TableHeader = () => {
         <thead>
             <tr>
                 <th>prefix</th>
-                <th>mask</th>
+                <th>prefix_len</th>
                 <th>next-hop</th>                
             </tr>
         </thead>
@@ -21,7 +21,7 @@ const TableBody = (props) => {
         return (
             <tr key={index}>
                 <td>{row.ip}</td>
-                <td>{row.mask_cidr}</td>
+                <td>{row.prefix_len}</td>
                 <td>{row.next_hop}</td>                
                 <td>
                     <button onClick={() => props.pxEdit(index)} disabled={props.changes[row.ip]==="new"} style={buttonStyle} className="btn btn-outline-primary btn-sm">Edit</button>

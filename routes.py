@@ -17,11 +17,14 @@ import motor.motor_asyncio
 async def create_db_client():
     mdbclient = motor.motor_asyncio.AsyncIOMotorClient()
     app.db = mdbclient.sdbgp
+    app.unicast = app.db.unicast
+    app.flowspec = app.db.flowspec
 
 @app.on_event("shutdown")
 async def shutdown_db_client():
     # stop your client here
-    app.db.close()
+    #app.db.logout()
+    pass
 
 ## mongo end
 
@@ -43,11 +46,22 @@ app.add_middleware(
 ## CORS end
 
 ## FastAPI Routes
-@app.get("/px", response_model=List[PathDataClass])
+@app.get("/unicast", response_model=List[PathDataClass])
 async def getPrefixesAll():
     prefixes = []
         
-    async for px in app.db.px.find({}):
+    async for px in app.unicast.find({}):
+        px.pop("_id")
+        #print(px)
+        prefixes.append(PathDataClass(**px))
+    
+    return prefixes
+
+@app.get("/flowspec", response_model=List[PathDataClass])
+async def getFlowspecAll():
+    prefixes = []
+        
+    async for px in app.unicast.find({}):
         px.pop("_id")
         #print(px)
         prefixes.append(PathDataClass(**px))
@@ -55,45 +69,45 @@ async def getPrefixesAll():
     return prefixes
 
 
-@app.get("/px/{ip}", response_model=PathDataClass)  
+@app.get("/unicast/{ip}", response_model=PathDataClass)  
 async def getPrefix(ip: str):
-    if (px := await app.db.px.find_one({"ip": ip})) is not None:
+    if (px := await app.unicast.find_one({"ip": ip})) is not None:
         px.pop("_id")
         return PathDataClass(**px)
 
     raise HTTPException(status_code=404, detail=f"Prefix with ID: {id} not found")
 
 
-@app.post("/px")
+@app.post("/unicast")
 async def createPx(px: PathDataClass = Body(...)):
     px = jsonable_encoder(px)    
     
-    new_px = await app.db.px.insert_one(px)
-    created_px = await app.db.px.find_one({"_id": new_px.inserted_id})
+    new_px = await app.unicast.insert_one(px)
+    created_px = await app.unicast.find_one({"_id": new_px.inserted_id})
     created_px.pop("_id")
 
     return JSONResponse(status_code=status.HTTP_201_CREATED, content=created_px)
 
-@app.post("/px/bulk")
+@app.post("/unicast/bulk")
 async def createBulkPx(pxlist: List[PathDataClass]):
     pxlist = jsonable_encoder(pxlist)    
     
     for px in pxlist:
-        new_px = await app.db.px.insert_one(px)      
+        new_px = await app.unicast.insert_one(px)      
 
     return JSONResponse(status_code=status.HTTP_201_CREATED, content="Ok")
 
-@app.put("/px/{ip}", response_description="Update prefix", response_model=PathDataClass)
+@app.put("/unicast/{ip}", response_description="Update prefix", response_model=PathDataClass)
 async def updatePx(ip: str, px: PxDataClass = Body(...)):
     px = jsonable_encoder(px)
     # update model shoudn't include _id because mongo will not allow mutate _id in update procedure 
     # so we have to create another data class for the update or just get rid of _id from the existed model 
     px.pop("_id") 
     
-    if (existed_px := await app.db.px.find_one({"ip": ip})) is not None:        
-        update_res = await app.db.px.update_one({"_id": existed_px["_id"] }, {"$set": px})
+    if (existed_px := await app.unicast.find_one({"ip": ip})) is not None:        
+        update_res = await app.unicast.update_one({"_id": existed_px["_id"] }, {"$set": px})
         if update_res.modified_count == 1:
-            result = await app.db.px.find_one({"ip": ip})
+            result = await app.unicast.find_one({"ip": ip})
         else: 
             result = existed_px
         result.pop("_id")
@@ -104,9 +118,9 @@ async def updatePx(ip: str, px: PxDataClass = Body(...)):
     return JSONResponse(status_code=status.HTTP_200_OK, content=result)
   
 
-@app.delete("/px/{ip}", response_description="Delete Prefix")
+@app.delete("/unicast/{ip}", response_description="Delete Prefix")
 async def deletePx(ip: str):
-    delete_res = await app.db.px.delete_one({"ip": ip})
+    delete_res = await app.unicast.delete_one({"ip": ip})
     if delete_res.deleted_count == 1:
         return Response(status_code=status.HTTP_204_NO_CONTENT)
 
@@ -132,7 +146,7 @@ async def gobgp_listall():
 
 @app.get("/gobgp/delallfromdb") # Deletes all the prefixes from GoBGP existing in Mongo 
 async def gobgp_dumpAll():
-    async for px in app.db.px.find({}):   
+    async for px in app.unicast.find({}):   
         px.pop("_id")     
         DelPath(PathDataClass(**px))
 
@@ -148,7 +162,7 @@ async def gobgp_delallrib():
 ### GoBGP to/from Mongo API section ###
 @app.get("/gobgp/db2rib") # Puts all the prefixes from Mongo to GoBGP
 async def gobgp_db2rib():
-    async for px in app.db.px.find({}): 
+    async for px in app.unicast.find({}): 
         px.pop("_id")       
         AddPath(PathDataClass(**px))
 
@@ -157,13 +171,13 @@ async def gobgp_db2rib():
 async def gobgp_rib2db():    
     paths = ListPath()
     if paths:
-        await app.db.px.drop({})
+        await app.unicast.drop({})
         for path in paths:                        
-            new_px = await app.db.px.insert_one(path)             
+            new_px = await app.unicast.insert_one(path)             
     return JSONResponse(status_code=status.HTTP_200_OK, content="OK")       
 
 
 @app.get("/gobgp/cleardb") # Loads all the prefixes from GoBGP to Mongo
 async def gobgp_cleardb():    
-    await app.db.px.drop({})    
+    await app.unicast.drop({})    
     return JSONResponse(status_code=status.HTTP_200_OK, content="OK")       

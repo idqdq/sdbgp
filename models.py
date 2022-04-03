@@ -23,7 +23,7 @@ class PxDataClass(BaseModel):
     id: PyObjectId = Field(default_factory=PyObjectId, alias="_id")
     # mandatory data
     ip: IPv4Address
-    mask_cidr: int = Field(32, ge=16, le=32)  # default mask = 32
+    prefix_len: int = Field(32, ge=16, le=32)  # default mask = 32
     next_hop: str = "null"
     # optional data
 
@@ -34,7 +34,7 @@ class PxDataClass(BaseModel):
         schema_extra = {
             "example": {
                 "ip": "1.2.3.4",
-                "mask_cidr": "32",
+                "prefix_len": "32",
                 "next_hop": "1.1.1.1"
             }
         }
@@ -48,14 +48,14 @@ class PxDataClass(BaseModel):
 
 class PathDataClass(BaseModel):
     ip: str
-    mask_cidr: int = Field(32, ge=16, le=32)
+    prefix_len: int = Field(32, ge=16, le=32)
     next_hop: str
 
     class Config:
         schema_extra = {
             "example": {
                 "ip": "1.2.3.4",
-                "mask_cidr": "32",
+                "prefix_len": "32",
                 "next_hop": "1.1.1.1"
             }
         }

@@ -1,14 +1,11 @@
 import React, { Component } from 'react'
 
-//const INTKEYS = ['vlan_id', 'vni', 'mtu'];
-//const IPADDRESSKEYS = ['svi_ip', 'mgroup'];
-
 class Form extends Component {
        
     initialState = {
         Data: {
             ip: '',
-            mask_cidr: 32,
+            prefix_len: 32,
             next_hop: '',            
         },
         errors: {},
@@ -63,7 +60,7 @@ class Form extends Component {
                     errors[name] = 'must be a valid IP address'
                 }
                 break;          
-            case 'mask_cidr':                                
+            case 'prefix_len':                                
                 if(!isNaN(value) && value >=32 && value <= 16) {
                     errors[name] = 'should be a number from 16 to 32';                    
                 }          
@@ -92,7 +89,7 @@ class Form extends Component {
     }
 
     render() {
-        const { ip, mask_cidr, next_hop } = this.state.Data;
+        const { ip, prefix_len, next_hop } = this.state.Data;
 
         return (            
             <form>
@@ -113,19 +110,19 @@ class Form extends Component {
                     </div>
                 </div>     
                 <div className="mb-3 row">
-                    <label htmlFor="mask_cidr" className="col-sm-2 col-form-label">mask (CIDR)</label>
+                    <label htmlFor="prefix_len" className="col-sm-2 col-form-label">mask (CIDR)</label>
                     <div className="col-sm-10">
                         <input
                             className="form-control"
                             type="number"
-                            name="mask_cidr"
-                            id="mask_cidr"
-                            value={mask_cidr || 32}
+                            name="prefix_len"
+                            id="prefix_len"
+                            value={prefix_len || 32}
                             placeholder="32"
                             onChange={this.handleChange}
                             onBlur = {this.handleBlur} />
                             <span style={{display: "block"}}><small className="form-text text-muted"><i>default 32</i></small></span>
-                            <span style={{color: "red"}}>{this.state.errors["mask_cidr"]}</span>
+                            <span style={{color: "red"}}>{this.state.errors["prefix_len"]}</span>
                     </div>
                 </div>
                 <div className="mb-3 row">

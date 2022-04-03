@@ -32,15 +32,15 @@ class FormBulk extends Component {
             }
 
             if (res[1]) {
-                const mask_cidr = res[1].trim();
-                if (isNaN(mask_cidr) || mask_cidr > 32 || mask_cidr < 16) {
-                    errors["mask_cidr"] = 'content must be a valid IP addresses';
+                const prefix_len = res[1].trim();
+                if (isNaN(prefix_len) || prefix_len > 32 || prefix_len < 16) {
+                    errors["prefix_len"] = 'content must be a valid IP addresses';
                     return false;
                 } else {
-                    obj.mask_cidr = mask_cidr;
+                    obj.prefix_len = prefix_len;
                 }
             } else
-                obj.mask_cidr = 32;
+                obj.prefix_len = 32;
 
             obj.next_hop = next_hop;
             data.push(obj);

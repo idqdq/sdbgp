@@ -1,15 +1,13 @@
 import { Tabs, Tab } from "react-bootstrap";
 import Container from "react-bootstrap/Container";
-import { useState } from 'react';
 
 const AppTabs = (props) => {
-    const [key, setKey] = useState('unicast');
-  
+    
     return (
       <Tabs
         id="controlled-tab-example"
-        activeKey={key}
-        onSelect={(k) => setKey(k)}
+        activeKey={props.activeKey}
+        onSelect={props.onSelect}
         className="mb-3"
       >
         <Tab eventKey="unicast" title="BGP Unicast">

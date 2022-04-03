@@ -1,14 +1,19 @@
 import React, { Component } from 'react'
 import Table from './Table'
-import { OneModal, BulkModal, SpinerModal } from './Modal';
+import { OneModal, BulkModal, FlowspecModal, SpinerModal } from './Modal';
 import AppTabs from './Tabs';
 
 const DEBUG = false;
-const URL_MONGO_API = "http://127.0.0.1:8000/px"
+const URL_MONGO_API = {
+    unicast: "http://127.0.0.1:8000/unicast", 
+    flowspec: "http://127.0.0.1:8000/flowspec",
+};
 const URL_GORIB_API = "http://127.0.0.1:8000/gobgp"
+
 class App extends Component {
     state = {
-        Data: [],        
+        Tab: 'unicast',
+        Data: [],         
         View: [],
         search: '',
         changes: {},
@@ -19,8 +24,8 @@ class App extends Component {
     }
 
 
-    loaddata = async () => {
-        const response = await fetch(URL_MONGO_API);
+    loaddata = async (tab=this.state.Tab) => {
+        const response = await fetch(URL_MONGO_API[tab]);
         const data = await response.json();
         this.setState({ Data: data, View: data, search: '', changes: {}, isFetching: false, checkbx: false })
     }
@@ -65,7 +70,7 @@ class App extends Component {
         const px = View[index];
 
         const newData = Data.filter((item) => { 
-            return !(px.ip===item.ip && px.mask_cidr===item.mask_cidr);
+            return !(px.ip===item.ip && px.prefix_len===item.prefix_len);
         })
         const newView = View.filter((char, i) => { 
             return i !== index;
@@ -92,6 +97,10 @@ class App extends Component {
         this.openOneModal();
     }
     
+    handleTabSelect = (tab) => {
+        this.setState(()=>({Tab: tab}));
+        this.loaddata(tab);
+    }
 
     handleFormOneSubmit = (px, viewindex) => {
         const { Data, View, changes } = this.state;
@@ -291,7 +300,7 @@ class App extends Component {
 
     restPostData = async (px, bulk=false) => {
         try {
-            const URL = bulk ? `${URL_MONGO_API}/bulk` : `${URL_MONGO_API}`;
+            const URL = bulk ? `${URL_MONGO_API[this.state.Tab]}/bulk` : `${URL_MONGO_API[this.state.Tab]}`;
             const res = await fetch(URL, {
                 method: "post",
                 headers: {
@@ -327,7 +336,7 @@ class App extends Component {
     restPutData = async (px) => {
         if (px.ip) {
             try {
-                const response = await fetch(`${URL_MONGO_API}/${px.ip}`, {
+                const response = await fetch(`${URL_MONGO_API[this.state.Tab]}/${px.ip}`, {
                     method: "put",
                     headers: {
                         "Content-Type": "application/json",
@@ -359,7 +368,7 @@ class App extends Component {
     restDelData = async (ip) => {
         if (ip) {
             try {
-                const response = await fetch(`${URL_MONGO_API}/${ip}`, { method: "delete" });
+                const response = await fetch(`${URL_MONGO_API[this.state.Tab]}/${ip}`, { method: "delete" });
                 //const data = await response.json();
                 if (DEBUG) {
                     const result = {
@@ -409,7 +418,7 @@ class App extends Component {
         }
         return (                        
             <div className="container">
-                <AppTabs />
+                <AppTabs onSelect={this.handleTabSelect} activeKey={this.state.Tab}/>
                 {/* search box */}                    
                 <div className="search" style={search_floater}> <i className="fa fa-search"></i>
                     <div className="input-group">
@@ -434,14 +443,17 @@ class App extends Component {
                     <div>
                         <label htmlFor="search">In View: {View.length}</label>
                     </div>
+                    <div>
+                        <label>Tab: {this.state.Tab}</label>
+                    </div>
                 </div>
                 
                 <Table Data={View} changes={changes} pxRemove={this.pxRemove} pxEdit={this.pxEdit}/>
                 
                 <div className="buttons" style={buttonsRowStyle}>
                     <button onClick={this.openOneModal} style={buttonStyle} type="button" className="btn btn-outline-primary">New Prefix</button>
-                    <button onClick={this.openBulkModal} style={buttonStyle} type="button" className="btn btn-outline-primary">Bulk Load</button>
-                    <button onClick={this.loaddata} style={buttonStyle} type="button" className="btn btn-outline-secondary">ReLoad</button>
+                    { this.state.Tab === "unicast" && <button onClick={this.openBulkModal} style={buttonStyle} type="button" className="btn btn-outline-primary">Bulk Load</button> }
+                    <button onClick={(e) => this.loaddata(this.state.Tab, e)} style={buttonStyle} type="button" className="btn btn-outline-secondary">ReLoad</button>
                     <button onClick={this.handleSubmit} disabled={Object.keys(changes).length===0} style={buttonStyle} type="button" className="btn btn-outline-danger">Save to DB</button>                    
                 </div>
                 <div className="buttons" style={buttonsRowStyle}>
@@ -456,6 +468,7 @@ class App extends Component {
                 </div>
                 <OneModal Data={View} changes={changes} index={index} isOpen={isOneOpen} hideModal={this.hideOneModal} handleFormSubmit={this.handleFormOneSubmit}/>                           
                 <BulkModal isOpen={isBulkOpen} hideModal={this.hideBulkModal} handleFormSubmit={this.handleFormBulkSubmit}/>
+                {/*<FlowspecModal isOpen={isBulkOpen} hideModal={this.hideBulkModal}/>*/}
                 <SpinerModal show={isFetching}/>                  
             </div>
         )

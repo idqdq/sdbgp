@@ -1,6 +1,7 @@
-import Modal from "react-bootstrap/Modal";
+import { Modal } from "react-bootstrap";
 import Form from './Form'
 import FormBulk from './FormBulk'
+import FlowspecForm from './FormFlowspec'
 import './spinner.css'
 
 const OneModal = (props) => {
@@ -9,7 +10,6 @@ const OneModal = (props) => {
         <Modal show={props.isOpen}
             onHide={props.hideModal}
             backdrop="static"
-            keyboard={false}
         >
             <Modal.Header closeButton className="btn-success">
                 <Modal.Title>{modalTitle}</Modal.Title>
@@ -28,7 +28,6 @@ const BulkModal = (props) => {
         <Modal show={props.isOpen}
             onHide={props.hideModal}
             backdrop="static"
-            keyboard={false}
         >
             <Modal.Header closeButton className="btn-success">
                 <Modal.Title>{modalTitle}</Modal.Title>
@@ -40,6 +39,22 @@ const BulkModal = (props) => {
     )
 };
 
+const FlowspecModal = (props) => {
+    const modalTitle = props.index!==undefined && props.Data[props.index] ? 'Edit NLRI:' + props.Data[props.index].ip : 'New NLRI';
+    return (
+        <Modal show={props.isOpen}
+            onHide={props.hideModal}
+            backdrop="static"
+        >
+            <Modal.Header closeButton className="btn-success">
+                <Modal.Title>{modalTitle}</Modal.Title>
+            </Modal.Header>
+            <Modal.Body>
+                <FlowspecForm handleSubmit={props.handleFormSubmit} Data={props.Data} changes={props.changes} index={props.index}/>
+            </Modal.Body>
+        </Modal>
+    )
+};
 
 const SpinerModal = (props) => {
     if (props.show)
@@ -51,4 +66,4 @@ const SpinerModal = (props) => {
     else return null;
 }
 
-export { OneModal, BulkModal, SpinerModal}
+export { SpinerModal, OneModal, BulkModal, FlowspecModal }
