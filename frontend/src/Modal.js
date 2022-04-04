@@ -40,7 +40,7 @@ const BulkModal = (props) => {
 };
 
 const FlowspecModal = (props) => {
-    const modalTitle = props.index!==undefined && props.Data[props.index] ? 'Edit NLRI:' + props.Data[props.index].ip : 'New NLRI';
+    const modalTitle = props.index!==undefined && props.Data[props.index] ? 'Edit FlowSpec Policy:' + props.Data[props.index].src : 'New FlowSpec policy';
     return (
         <Modal show={props.isOpen}
             onHide={props.hideModal}

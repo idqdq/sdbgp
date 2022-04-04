@@ -467,8 +467,8 @@ class App extends Component {
                     <button onClick={this.handleClearRIB} disabled={!checkbx} style={buttonStyle} type="button" className="btn btn-outline-dark">Clear RIB</button>
                 </div>
                 <OneModal Data={View} changes={changes} index={index} isOpen={isOneOpen} hideModal={this.hideOneModal} handleFormSubmit={this.handleFormOneSubmit}/>                           
-                <BulkModal isOpen={isBulkOpen} hideModal={this.hideBulkModal} handleFormSubmit={this.handleFormBulkSubmit}/>
-                {/*<FlowspecModal isOpen={isBulkOpen} hideModal={this.hideBulkModal}/>*/}
+                {/*<BulkModal isOpen={isBulkOpen} hideModal={this.hideBulkModal} handleFormSubmit={this.handleFormBulkSubmit}/>*/}
+                {<FlowspecModal isOpen={isBulkOpen} hideModal={this.hideBulkModal}/>}
                 <SpinerModal show={isFetching}/>                  
             </div>
         )
