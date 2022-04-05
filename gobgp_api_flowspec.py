@@ -22,7 +22,9 @@ class FlowSpecBuilder:
     _PROTOCOLS_MAP = {
         'TCP': 6,
         'UDP': 17,
-        'ICMP': 1
+        'ICMP': 1,
+        'GRE': 47,
+        'ESP': 50,
     }
 
     _FLOWSPEC_COMPONENT_MAP = {
