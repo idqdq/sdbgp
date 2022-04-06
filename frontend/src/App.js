@@ -1,14 +1,18 @@
 import React, { Component } from 'react'
-import Table from './Table'
-import { OneModal, BulkModal, FlowspecModal, SpinerModal } from './Modal';
-import AppTabs from './Tabs';
+import Table from './components/Table'
+import { OneModal, BulkModal, FlowspecModal, SpinerModal } from './components/Modal';
+import AppTabs from './components/Tabs';
 
 const DEBUG = false;
+
 const URL_MONGO_API = {
-    unicast: "http://127.0.0.1:8000/unicast", 
-    flowspec: "http://127.0.0.1:8000/flowspec",
+    unicast: "http://127.0.0.1:8000/mongo/unicast", 
+    flowspec: "http://127.0.0.1:8000/mongo/flowspec",
 };
-const URL_GORIB_API = "http://127.0.0.1:8000/gobgp"
+const URL_GORIB_API = {
+    unicast: "http://127.0.0.1:8000/gobgp/unicast",
+    flowspec: "http://127.0.0.1:8000/gobgp/flowspec",
+}
 
 class App extends Component {
     state = {
@@ -19,10 +23,10 @@ class App extends Component {
         changes: {},
         checkbx: false,
         isOneOpen: false,        
-        isBulkOpen: false,        
+        isBulkOpen: false,   
+        isFlowSpecOpen: false,     
         isFetching: true,
     }
-
 
     loaddata = async (tab=this.state.Tab) => {
         const response = await fetch(URL_MONGO_API[tab]);
@@ -30,18 +34,15 @@ class App extends Component {
         this.setState({ Data: data, View: data, search: '', changes: {}, isFetching: false, checkbx: false })
     }
 
-
     async componentDidMount(){
         await this.loaddata();
     }
-
 
     openOneModal = () => {
         this.setState({
             isOneOpen: true
         });        
     }
-
 
     hideOneModal = () => {
         this.setState({
@@ -50,13 +51,11 @@ class App extends Component {
         delete this.state.index;
     }
 
-
     openBulkModal = () => {
         this.setState({
             isBulkOpen: true
         });        
     }
-
 
     hideBulkModal = () => {
         this.setState({
@@ -64,6 +63,17 @@ class App extends Component {
         });                
     }
 
+    openFlowSpecModal = () => {
+        this.setState({
+            isFlowSpecOpen: true
+        });        
+    }
+
+    hideFlowSpecModal = () => {
+        this.setState({
+            isFlowSpecOpen: false
+        });                
+    }
 
     pxRemove = index => {
         const { Data, View, changes } = this.state;
@@ -88,13 +98,14 @@ class App extends Component {
         this.setState({ Data: newData, View: newView, changes: changes })        
     }
 
-
     pxEdit = index => {
         this.setState({            
             index: index,
         })        
-
-        this.openOneModal();
+        if (this.state.Tab === 'unicast')
+            this.openOneModal();
+        else if (this.state.Tab === 'flowspec')
+            this.openFlowSpecModal();
     }
     
     handleTabSelect = (tab) => {
@@ -122,7 +133,6 @@ class App extends Component {
         this.hideOneModal();
     }
 
-
     handleFormBulkSubmit = (bulkdata) => {     
         const { Data } = this.state;    
         const changes = {}
@@ -143,6 +153,7 @@ class App extends Component {
         });                
     }
 
+    handleFormFlowspecSubmit = () => {};
 
     handleSubmit = () => {
         const { Data, changes } = this.state;                
@@ -384,7 +395,7 @@ class App extends Component {
     }
 
     render() {
-        const { Data, View, changes, index, isOneOpen, isBulkOpen, search, checkbx, isFetching } = this.state
+        const { Tab, Data, View, changes, index, isOneOpen, isBulkOpen, isFlowSpecOpen, search, checkbx, isFetching } = this.state
         
         const searchStyle = {
             //      margin: '20px 0px',
@@ -448,11 +459,12 @@ class App extends Component {
                     </div>
                 </div>
                 
-                <Table Data={View} changes={changes} pxRemove={this.pxRemove} pxEdit={this.pxEdit}/>
+                <Table Tab={Tab} Data={View} changes={changes} pxRemove={this.pxRemove} pxEdit={this.pxEdit}/>
                 
                 <div className="buttons" style={buttonsRowStyle}>
-                    <button onClick={this.openOneModal} style={buttonStyle} type="button" className="btn btn-outline-primary">New Prefix</button>
+                    { this.state.Tab === "unicast" && <button onClick={this.openOneModal} style={buttonStyle} type="button" className="btn btn-outline-primary">New Prefix</button> }
                     { this.state.Tab === "unicast" && <button onClick={this.openBulkModal} style={buttonStyle} type="button" className="btn btn-outline-primary">Bulk Load</button> }
+                    { this.state.Tab === "flowspec" && <button onClick={this.openFlowSpecModal} style={buttonStyle} type="button" className="btn btn-outline-primary">New Policy</button>}
                     <button onClick={(e) => this.loaddata(this.state.Tab, e)} style={buttonStyle} type="button" className="btn btn-outline-secondary">ReLoad</button>
                     <button onClick={this.handleSubmit} disabled={Object.keys(changes).length===0} style={buttonStyle} type="button" className="btn btn-outline-danger">Save to DB</button>                    
                 </div>
@@ -467,8 +479,8 @@ class App extends Component {
                     <button onClick={this.handleClearRIB} disabled={!checkbx} style={buttonStyle} type="button" className="btn btn-outline-dark">Clear RIB</button>
                 </div>
                 <OneModal Data={View} changes={changes} index={index} isOpen={isOneOpen} hideModal={this.hideOneModal} handleFormSubmit={this.handleFormOneSubmit}/>                           
-                {/*<BulkModal isOpen={isBulkOpen} hideModal={this.hideBulkModal} handleFormSubmit={this.handleFormBulkSubmit}/>*/}
-                {<FlowspecModal isOpen={isBulkOpen} hideModal={this.hideBulkModal}/>}
+                <BulkModal isOpen={isBulkOpen} hideModal={this.hideBulkModal} handleFormSubmit={this.handleFormBulkSubmit}/>
+                <FlowspecModal Data={View} changes={changes} index={index} isOpen={isFlowSpecOpen} hideModal={this.hideFlowSpecModal} handleFormSubmit={this.handleFormFlowspecSubmit}/>
                 <SpinerModal show={isFetching}/>                  
             </div>
         )

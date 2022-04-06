@@ -1,5 +1,6 @@
 ## custom data class with the mongo specific ObjectId 
 from typing import Optional, List
+from enum import IntEnum
 from pydantic import BaseModel, Field, validator
 from bson import ObjectId
 from ipaddress import IPv4Address
@@ -60,26 +61,31 @@ class PathDataClass(BaseModel):
             }
         }
 
+
+class FlowSpecAction(IntEnum):
+    ACTION_DISCARD = 1
+    ACTION_ACCEPT = 2
+    ACTION_RATE_LIMIT = 3
+
 class FlowSpecDataClass(BaseModel):
-    src: str
-    src_prefix_len: int
-    dst: Optional[str] = ''
-    dst_prefix_len: Optional[int] = 0
+    src: str    
+    dst: Optional[str] = ''    
     src_ports: Optional[str] = ''
     dst_ports: Optional[str] = ''
-    protocols: Optional[List[str]] = ''
+    #protocols: Optional[List[str]] = ''
+    protocols: Optional[str] = ''
+    action: str = ''
     rate_limit: int = 0
 
     class Config:
         schema_extra = {
             "example": {
-                "src": "1.2.3.4",
-                "src_prefix_len": "32",
+                "src": "1.2.3.4/32",                
                 "dst": "10.20.30.0",
-                "dst_prefix_len": "24",
                 "src_ports": "1024-65535",
                 "dst_ports": "80, 443, 5000-6000",
-                "protocols": ["tcp", "udp"],
+                "protocols": "tcp, udp",
+                "action": 1,
                 "rate_limit": 0
             }
         }

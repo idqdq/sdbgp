@@ -4,7 +4,7 @@ from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse
 from typing import List
 from gobgp_api_unicast import AddPath, DelPath, ListPath
-from models import PxDataClass, PathDataClass
+from models import PxDataClass, PathDataClass, FlowSpecDataClass
 
 app = FastAPI()
 
@@ -46,7 +46,8 @@ app.add_middleware(
 ## CORS end
 
 ## FastAPI Routes
-@app.get("/unicast", response_model=List[PathDataClass])
+### GoBGP API Section ###
+@app.get("/mongo/unicast", response_model=List[PathDataClass])
 async def getPrefixesAll():
     prefixes = []
         
@@ -57,19 +58,19 @@ async def getPrefixesAll():
     
     return prefixes
 
-@app.get("/flowspec", response_model=List[PathDataClass])
+@app.get("/mongo/flowspec", response_model=List[FlowSpecDataClass])
 async def getFlowspecAll():
     prefixes = []
         
-    async for px in app.unicast.find({}):
+    async for px in app.flowspec.find({}):
         px.pop("_id")
-        #print(px)
-        prefixes.append(PathDataClass(**px))
+        print(px)
+        prefixes.append(FlowSpecDataClass(**px))
     
     return prefixes
 
 
-@app.get("/unicast/{ip}", response_model=PathDataClass)  
+@app.get("/mongo/unicast/{ip}", response_model=PathDataClass)  
 async def getPrefix(ip: str):
     if (px := await app.unicast.find_one({"ip": ip})) is not None:
         px.pop("_id")
@@ -78,7 +79,7 @@ async def getPrefix(ip: str):
     raise HTTPException(status_code=404, detail=f"Prefix with ID: {id} not found")
 
 
-@app.post("/unicast")
+@app.post("/mongo/unicast")
 async def createPx(px: PathDataClass = Body(...)):
     px = jsonable_encoder(px)    
     
@@ -88,7 +89,7 @@ async def createPx(px: PathDataClass = Body(...)):
 
     return JSONResponse(status_code=status.HTTP_201_CREATED, content=created_px)
 
-@app.post("/unicast/bulk")
+@app.post("/mongo/unicast/bulk")
 async def createBulkPx(pxlist: List[PathDataClass]):
     pxlist = jsonable_encoder(pxlist)    
     
@@ -97,7 +98,7 @@ async def createBulkPx(pxlist: List[PathDataClass]):
 
     return JSONResponse(status_code=status.HTTP_201_CREATED, content="Ok")
 
-@app.put("/unicast/{ip}", response_description="Update prefix", response_model=PathDataClass)
+@app.put("/mongo/unicast/{ip}", response_description="Update prefix", response_model=PathDataClass)
 async def updatePx(ip: str, px: PxDataClass = Body(...)):
     px = jsonable_encoder(px)
     # update model shoudn't include _id because mongo will not allow mutate _id in update procedure 
@@ -118,7 +119,7 @@ async def updatePx(ip: str, px: PxDataClass = Body(...)):
     return JSONResponse(status_code=status.HTTP_200_OK, content=result)
   
 
-@app.delete("/unicast/{ip}", response_description="Delete Prefix")
+@app.delete("/mongo/unicast/{ip}", response_description="Delete Prefix")
 async def deletePx(ip: str):
     delete_res = await app.unicast.delete_one({"ip": ip})
     if delete_res.deleted_count == 1:
@@ -128,30 +129,30 @@ async def deletePx(ip: str):
 
 
 ### GoBGP API Section ###
-@app.post("/gobgp/add") # adds prefix into gobgp
+@app.post("/gobgp/unicast/add") # adds prefix into gobgp
 async def gobgp_addpath(px: PathDataClass = Body(...)):
     AddPath(px)
 
 
-@app.post("/gobgp/del") # deletes prefix from gobgp
+@app.post("/gobgp/unicast/del") # deletes prefix from gobgp
 async def gobgp_delpath(px: PathDataClass = Body(...)):
     DelPath(px)
 
 
-@app.get("/gobgp/list") # returns all the prefixes from within gobgp
+@app.get("/gobgp/unicast/list") # returns all the prefixes from within gobgp
 async def gobgp_listall():    
     result = ListPath()
     return JSONResponse(status_code=status.HTTP_200_OK, content=result)
 
 
-@app.get("/gobgp/delallfromdb") # Deletes all the prefixes from GoBGP existing in Mongo 
+@app.get("/gobgp/unicast/delallfromdb") # Deletes all the prefixes from GoBGP existing in Mongo 
 async def gobgp_dumpAll():
     async for px in app.unicast.find({}):   
         px.pop("_id")     
         DelPath(PathDataClass(**px))
 
 
-@app.get("/gobgp/delallrib") # Deletes all the prefixes from GoBGP
+@app.get("/gobgp/unicast/delallrib") # Deletes all the prefixes from GoBGP
 async def gobgp_delallrib():
     paths = ListPath()
     if paths:
@@ -160,14 +161,14 @@ async def gobgp_delallrib():
             
 
 ### GoBGP to/from Mongo API section ###
-@app.get("/gobgp/db2rib") # Puts all the prefixes from Mongo to GoBGP
+@app.get("/gobgp/unicast/db2rib") # Puts all the prefixes from Mongo to GoBGP
 async def gobgp_db2rib():
     async for px in app.unicast.find({}): 
         px.pop("_id")       
         AddPath(PathDataClass(**px))
 
 
-@app.get("/gobgp/rib2db") # Loads all the prefixes from GoBGP to Mongo
+@app.get("/gobgp/unicast/rib2db") # Loads all the prefixes from GoBGP to Mongo
 async def gobgp_rib2db():    
     paths = ListPath()
     if paths:
@@ -177,7 +178,7 @@ async def gobgp_rib2db():
     return JSONResponse(status_code=status.HTTP_200_OK, content="OK")       
 
 
-@app.get("/gobgp/cleardb") # Loads all the prefixes from GoBGP to Mongo
+@app.get("/gobgp/unicast/cleardb") # Loads all the prefixes from GoBGP to Mongo
 async def gobgp_cleardb():    
     await app.unicast.drop({})    
     return JSONResponse(status_code=status.HTTP_200_OK, content="OK")       

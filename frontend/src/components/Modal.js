@@ -2,10 +2,10 @@ import { Modal } from "react-bootstrap";
 import Form from './Form'
 import FormBulk from './FormBulk'
 import FlowspecForm from './FormFlowspec'
-import './spinner.css'
+import '../spinner.css'
 
-const OneModal = (props) => {
-    const modalTitle = props.index!==undefined && props.Data[props.index] ? 'Edit Prefix:' + props.Data[props.index].ip : 'New Prefix';
+const OneModal = ({index, Data, ...props}) => {
+    const modalTitle = index!==undefined && Data[index] ? 'Edit Prefix:' + Data[index].ip : 'New Prefix';
     return (
         <Modal show={props.isOpen}
             onHide={props.hideModal}
@@ -15,12 +15,11 @@ const OneModal = (props) => {
                 <Modal.Title>{modalTitle}</Modal.Title>
             </Modal.Header>
             <Modal.Body>
-                <Form handleSubmit={props.handleFormSubmit} Data={props.Data} changes={props.changes} index={props.index}/>
+                <Form handleSubmit={props.handleFormSubmit} Data={Data} changes={props.changes} index={index}/>
             </Modal.Body>
         </Modal>
     )
 };
-
 
 const BulkModal = (props) => {
     const modalTitle = 'Bulk Prefix loads';
@@ -39,8 +38,8 @@ const BulkModal = (props) => {
     )
 };
 
-const FlowspecModal = (props) => {
-    const modalTitle = props.index!==undefined && props.Data[props.index] ? 'Edit FlowSpec Policy:' + props.Data[props.index].src : 'New FlowSpec policy';
+const FlowspecModal = ({index, Data, ...props}) => {
+    const modalTitle = index!==undefined && Data[index] ? 'Edit FlowSpec Policy:' + Data[index].src : 'New FlowSpec policy';
     return (
         <Modal show={props.isOpen}
             onHide={props.hideModal}
@@ -50,7 +49,7 @@ const FlowspecModal = (props) => {
                 <Modal.Title>{modalTitle}</Modal.Title>
             </Modal.Header>
             <Modal.Body>
-                <FlowspecForm handleSubmit={props.handleFormSubmit} Data={props.Data} changes={props.changes} index={props.index}/>
+                <FlowspecForm handleSubmit={props.handleFormSubmit} Data={Data} changes={props.changes} index={index}/>
             </Modal.Body>
         </Modal>
     )

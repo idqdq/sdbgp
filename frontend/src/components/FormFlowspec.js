@@ -1,5 +1,5 @@
 import { Component } from 'react'
-import { Form, Button, ToggleButton, ToggleButtonGroup } from "react-bootstrap";
+import { Form, ToggleButton, ToggleButtonGroup } from "react-bootstrap";
 
 const ACTION_DISCARD = '1';
 const ACTION_ACCEPT = '2';
@@ -117,7 +117,7 @@ class FlowspecForm extends Component {
 
   render() {
     const { chckbx } = this.state;
-    const action = this.state.Data.action;
+    const { action } = this.state.Data;
 
     return (<>
       <Form>

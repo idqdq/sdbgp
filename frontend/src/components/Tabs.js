@@ -1,13 +1,13 @@
 import { Tabs, Tab } from "react-bootstrap";
 import Container from "react-bootstrap/Container";
 
-const AppTabs = (props) => {
+const AppTabs = ({activeKey, onSelect}) => {
     
     return (
       <Tabs
         id="controlled-tab-example"
-        activeKey={props.activeKey}
-        onSelect={props.onSelect}
+        activeKey={activeKey}
+        onSelect={onSelect}
         className="mb-3"
       >
         <Tab eventKey="unicast" title="BGP Unicast">
