@@ -4,7 +4,7 @@ class Form extends Component {
        
     initialState = {
         Data: {
-            ip: '',
+            src: '',
             prefix_len: 32,
             next_hop: '',            
         },
@@ -39,7 +39,7 @@ class Form extends Component {
 
     isFormValid = () => {
         if (Object.keys(this.state.errors).length === 0) {
-            if (this.state.Data.ip && this.state.Data.next_hop) this.setState({ formValid: true });
+            if (this.state.Data.src && this.state.Data.next_hop) this.setState({ formValid: true });
         }
     }
 
@@ -55,9 +55,9 @@ class Form extends Component {
         const IpAddrPattern = /^(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.(25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/;        
 
         switch(name) {        
-            case 'ip':
+            case 'src':
                 if (value && !IpAddrPattern.test(value)) {
-                    errors[name] = 'must be a valid IP address'
+                    errors['src'] = 'must be a valid IP address'
                 }
                 break;          
             case 'prefix_len':                                
@@ -89,24 +89,24 @@ class Form extends Component {
     }
 
     render() {
-        const { ip, prefix_len, next_hop } = this.state.Data;
+        const {src, prefix_len, next_hop } = this.state.Data;
 
         return (            
             <form>
                 <div className="mb-3 row">
-                    <label htmlFor="ip" className="col-sm-2 col-form-label">ip</label>
+                    <label htmlFor="src" className="col-sm-2 col-form-label">ip</label>
                     <div className="col-sm-10">
                         <input
                             className="form-control"
                             type="text"
-                            name="ip"
-                            id="ip"
-                            value={ip || ''}
+                            name="src"
+                            id="src"
+                            value={src || ''}
                             placeholder="1.2.3.4"
                             onChange={this.handleChange}
                             onBlur = {this.handleBlur} />
                             <span style={{display: "block"}}><small className="form-text text-muted"><i>IPv4 address</i></small></span>
-                            <span style={{color: "red"}}>{this.state.errors["ip"]}</span>
+                            <span style={{color: "red"}}>{this.state.errors["src"]}</span>
                     </div>
                 </div>     
                 <div className="mb-3 row">

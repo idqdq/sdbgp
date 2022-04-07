@@ -21,6 +21,7 @@ class FlowspecForm extends Component {
         formValid: false,
     }
 
+    index = this.props.index;   
     state = this.initialState;    
 
     constructor(props){
@@ -54,6 +55,7 @@ class FlowspecForm extends Component {
         this.setState ({ 
             Data: { ...this.state.Data, action: e.target.previousSibling.value } //magic
         })        
+        this.isFormValid();
     }
 
     isFormValid = () => {
@@ -76,7 +78,7 @@ class FlowspecForm extends Component {
           case 'dst':
               if (value && !regex_ipv4.test(value) && !regex_ipv4prefix.test(value)) {
                   errors[name] = 'must be a valid IP address'
-              }
+              }              
               break;          
           case 'src_ports':    
           case 'dst_ports':                            
@@ -115,9 +117,19 @@ class FlowspecForm extends Component {
       }
   }
 
+  submitForm = () => {        
+    const data = Object.assign({}, this.state.Data);        
+    
+    if (!data.src.includes('/')) data.src = data.src + '/32';
+    if (data.dst && !data.dst.includes('/')) data.dst = data.dst + '/32';
+
+    this.props.handleSubmit(data, this.index);
+    this.setState(this.initialState)        
+  }
+
   render() {
     const { chckbx } = this.state;
-    const { action } = this.state.Data;
+    const { src, dst, src_ports, dst_ports, protocols, action, rate_limit } = this.state.Data;
 
     return (<>
       <Form>
@@ -127,6 +139,7 @@ class FlowspecForm extends Component {
             name="src" type="text" placeholder="1.1.1.1/32"
             onChange={this.handleChange}
             onBlur={this.handleBlur}
+            value={src || ''}
             className={this.state.errors["src"] ? "is-invalid" : ""}
           />
           <span style={{ color: "red", display: "block" }}>{this.state.errors["src"]}</span>
@@ -140,6 +153,7 @@ class FlowspecForm extends Component {
             name="dst" type="text" placeholder="2.2.2.2/32"
             onChange={this.handleChange}
             onBlur={this.handleBlur}
+            value={dst || ''}
             className={this.state.errors["dst"] ? "is-invalid" : ""}
           />
           <span style={{ color: "red", display: "block" }}>{this.state.errors["dst"]}</span>
@@ -158,6 +172,7 @@ class FlowspecForm extends Component {
               name="src_ports" type="text" placeholder="3000, 4000, 8080-8088"
               onChange={this.handleChange}
               onBlur={this.handleBlur}
+              value={src_ports || ''}
               className={this.state.errors["src_ports"] ? "is-invalid" : ""}
             />
             <span style={{ color: "red", display: "block" }}>{this.state.errors["src_ports"]}</span>
@@ -171,6 +186,7 @@ class FlowspecForm extends Component {
               name="dst_ports" type="text" placeholder="80,443,8080-8088"
               onChange={this.handleChange}
               onBlur={this.handleBlur}
+              value={dst_ports || ''}
               className={this.state.errors["dst_ports"] ? "is-invalid" : ""}
             />
             <span style={{ color: "red", display: "block" }}>{this.state.errors["dst_ports"]}</span>
@@ -184,6 +200,7 @@ class FlowspecForm extends Component {
               name="protocols" type="text" placeholder="tcp,udp"
               onChange={this.handleChange}
               onBlur={this.handleBlur}
+              value={protocols || ''}
               className={this.state.errors["protocols"] ? "is-invalid" : ""}
             />
             <span style={{ color: "red", display: "block" }}>{this.state.errors["protocols"]}</span>
@@ -208,6 +225,7 @@ class FlowspecForm extends Component {
             disabled={action !== ACTION_RATE_LIMIT}
             onChange={this.handleChange}
             onBlur={this.handleBlur}
+            value={rate_limit || ''}
             className={this.state.errors["rate_limit"] ? "is-invalid" : ""}
           />
           <span style={{ color: "red", display: "block" }}>{this.state.errors["rate_limit"]}</span>

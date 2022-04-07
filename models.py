@@ -48,14 +48,14 @@ class PxDataClass(BaseModel):
 
 
 class PathDataClass(BaseModel):
-    ip: str
+    src: str
     prefix_len: int = Field(32, ge=16, le=32)
     next_hop: str
 
     class Config:
         schema_extra = {
             "example": {
-                "ip": "1.2.3.4",
+                "src": "1.2.3.4",
                 "prefix_len": "32",
                 "next_hop": "1.1.1.1"
             }

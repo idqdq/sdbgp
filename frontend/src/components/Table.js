@@ -3,7 +3,13 @@ import React from 'react'
 
 const tabHeaders = {
     unicast: ['ip', 'prefix_len', 'next_hop'],
-    flowspec: ['src', 'dst', 'srx_ports', 'dst_ports', 'protocols', 'action', 'rate_limit'],
+    flowspec: ['src', 'dst', 'src_ports', 'dst_ports', 'protocols', 'action', 'rate_limit'],
+}
+
+const ACTION_MAP = {
+    1: 'discard',
+    2: 'accept',
+    3: 'rate-limit',
 }
 
 const TableHeader = ({ Tab }) => {
@@ -23,10 +29,11 @@ const TableBody = ({Data, ...props}) => {
         return (
             <tr key={index}>{
                 Object.values(row).map((value, x) => {
+                    if (x===5) return (<td key={x}>{ACTION_MAP[value]}</td>);
                     return (<td key={x}>{value}</td>)
                 })}
                 <td>
-                    <button onClick={() => props.pxEdit(index)} disabled={props.changes[row.ip] === "new"} style={buttonStyle} className="btn btn-outline-primary btn-sm">Edit</button>
+                    <button onClick={() => props.pxEdit(index)} disabled={props.changes[row.src] === "new"} style={buttonStyle} className="btn btn-outline-primary btn-sm">Edit</button>
                     <button onClick={() => props.pxRemove(index)} style={buttonStyle} className="btn btn-outline-danger btn-sm">Delete</button>
                 </td>
             </tr>

@@ -60,6 +60,10 @@ router bgp 65100
  address-family ipv4 unicast
   network 172.16.1.0/24
  exit-address-family
+ !
+ address-family ipv4 flowspec
+  neighbor 172.22.0.3 activate
+ exit-address-family
 exit
 frr1(config)# exit
 ```
@@ -77,6 +81,13 @@ so let's create it with the following content:
   [neighbors.config]
     neighbor-address = "172.22.0.2"
     peer-as = 65100
+  [[neighbors.afi-safis]]
+    [neighbors.afi-safis.config]
+      afi-safi-name = "ipv4-flowspec"
+  [[neighbors.afi-safis]]
+    [neighbors.afi-safis.config]
+      afi-safi-name = "ipv4-unicast"
+
 ```
 Now it's time to run a gobgp container 
 ```bash

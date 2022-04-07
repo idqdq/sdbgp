@@ -1,6 +1,6 @@
 import React, { Component } from 'react'
 import Table from './components/Table'
-import { OneModal, BulkModal, FlowspecModal, SpinerModal } from './components/Modal';
+import { FormModal, FormBulkModal, SpinerModal } from './components/Modal';
 import AppTabs from './components/Tabs';
 
 const DEBUG = false;
@@ -22,9 +22,8 @@ class App extends Component {
         search: '',
         changes: {},
         checkbx: false,
-        isOneOpen: false,        
-        isBulkOpen: false,   
-        isFlowSpecOpen: false,     
+        isFormOpen: false,        
+        isBulkOpen: false,           
         isFetching: true,
     }
 
@@ -38,15 +37,15 @@ class App extends Component {
         await this.loaddata();
     }
 
-    openOneModal = () => {
+    openFormModal = () => {
         this.setState({
-            isOneOpen: true
+            isFormOpen: true
         });        
     }
 
-    hideOneModal = () => {
+    hideFormModal = () => {
         this.setState({
-            isOneOpen: false
+            isFormOpen: false
         });        
         delete this.state.index;
     }
@@ -61,38 +60,26 @@ class App extends Component {
         this.setState({
             isBulkOpen: false
         });                
-    }
-
-    openFlowSpecModal = () => {
-        this.setState({
-            isFlowSpecOpen: true
-        });        
-    }
-
-    hideFlowSpecModal = () => {
-        this.setState({
-            isFlowSpecOpen: false
-        });                
-    }
+    }    
 
     pxRemove = index => {
         const { Data, View, changes } = this.state;
         const px = View[index];
 
         const newData = Data.filter((item) => { 
-            return !(px.ip===item.ip && px.prefix_len===item.prefix_len);
+            return !(px.src===item.src && px.prefix_len===item.prefix_len);
         })
         const newView = View.filter((char, i) => { 
             return i !== index;
         })
 
         // if you've just created a new prefix and then delete it, no change happened
-        const ip = View[index].ip;
-        if (changes[ip]==="new"){
-            delete changes[ip];
+        const src = View[index].src;
+        if (changes[src]==="new"){
+            delete changes[src];
         }
         else {
-            changes[ip] = "del";
+            changes[src] = "del";
         }
 
         this.setState({ Data: newData, View: newView, changes: changes })        
@@ -102,10 +89,7 @@ class App extends Component {
         this.setState({            
             index: index,
         })        
-        if (this.state.Tab === 'unicast')
-            this.openOneModal();
-        else if (this.state.Tab === 'flowspec')
-            this.openFlowSpecModal();
+        this.openFormModal();        
     }
     
     handleTabSelect = (tab) => {
@@ -113,7 +97,7 @@ class App extends Component {
         this.loaddata(tab);
     }
 
-    handleFormOneSubmit = (px, viewindex) => {
+    handleFormSubmit = (px, viewindex) => {
         const { Data, View, changes } = this.state;
         if (viewindex != null) {             
             const dataindex = Data.indexOf(View[viewindex]); // find Data.index for the old unchanged data
@@ -123,14 +107,14 @@ class App extends Component {
             newView[viewindex] = px; // replace old data with a new one in the View array
             newData[dataindex] = px; // replace old data with a new one in the Data array
                         
-            changes[px.ip] = "edit";
+            changes[px.src] = "edit";
             this.setState({ Data: newData, View: newView, changes: changes });
         }
         else {
-            changes[px.ip] = "new";
+            changes[px.src] = "new";
             this.setState({ Data: [...Data, px], View: [...View, px], changes: changes });
         }
-        this.hideOneModal();
+        this.hideFormModal();
     }
 
     handleFormBulkSubmit = (bulkdata) => {     
@@ -140,8 +124,8 @@ class App extends Component {
         this.hideBulkModal();
         this.setState(() => ({ isFetching: true }));
         
-        const newData = bulkdata.filter((b) => !Data.find((a) => a.ip === b.ip)); // uniqueness
-        newData.forEach(el => changes[el.ip] = "new");
+        const newData = bulkdata.filter((b) => !Data.find((a) => a.src === b.src)); // uniqueness
+        newData.forEach(el => changes[el.src] = "new");
         
         const fullData = [...Data, ...newData];
         
@@ -153,30 +137,28 @@ class App extends Component {
         });                
     }
 
-    handleFormFlowspecSubmit = () => {};
-
     handleSubmit = () => {
         const { Data, changes } = this.state;                
         this.setState(() => ({ isFetching: true }));
 
-        if (Object.keys(changes).length > 3) {
+        if (Object.keys(changes).length > 10) {
             // bulk processing
             const arrnew = []
             const arredit = []
             const arrdel = []
             
-            for (let ip in changes){
-                switch(changes[ip]){
+            for (let i in changes){
+                switch(changes[i]){
                     case "new":
-                        arrnew.push(ip);
+                        arrnew.push(i);
                         break;
 
                     case "edit":
-                        arredit.push(ip);
+                        arredit.push(i);
                         break;
 
                     case "del":
-                        arrdel.push(ip);
+                        arrdel.push(i);
                         break;
                     default:
                         break;
@@ -185,14 +167,14 @@ class App extends Component {
 
             function prepareBulkData(arr){
                 const BulkData = [];
-                arr.forEach((ip) => {
-                    const index = Data.findIndex(x => x.ip === ip);
+                arr.forEach((i) => {
+                    const index = Data.findIndex(x => x.src === i);
                     BulkData.push(Data[index]);
                 })
                 return BulkData;
             }
 
-            arrdel.forEach((ip) => this.restDelData(ip));
+            arrdel.forEach((i) => this.restDelData(i));
 
             const DataNew = prepareBulkData(arrnew);
             this.restPostData(DataNew, true); // bulk = true
@@ -202,19 +184,18 @@ class App extends Component {
         } 
         else {
             // one_by_one processing 
-            for (let ip in changes) {
-
-                if (changes[ip] === "del") {
-                    this.restDelData(ip);
+            for (let i in changes) {
+                if (changes[i] === "del") {
+                    this.restDelData(i);
                 }
                 else {
-                    const index = Data.findIndex(x => x.ip === ip);
+                    const index = Data.findIndex(x => x.src === i);
                     const px = Data[index];
 
-                    if (changes[ip] === "new") {
+                    if (changes[i] === "new") {
                         this.restPostData(px);
                     }
-                    if (changes[ip] === "edit") {
+                    if (changes[i] === "edit") {
                         this.restPutData(px)
                     }
                 }
@@ -224,7 +205,7 @@ class App extends Component {
     }
 
     stripData = (value) => {                
-        const View = this.state.Data.filter((item) => item.ip.startsWith(value));
+        const View = this.state.Data.filter((item) => item.src.startsWith(value));
         this.setState ({View: View, search: value});
     }
 
@@ -240,7 +221,7 @@ class App extends Component {
     handleDB2RIB = async () => {
         this.setState(() => ({ isFetching: true }));        
         try {
-            const res = await fetch(`${URL_GORIB_API}/db2rib`);
+            const res = await fetch(`${URL_GORIB_API[this.state.Tab]}/db2rib`);
             if (!res.ok) {
                 const message = `An error has occured: ${res.status} - ${res.statusText}`;
                 throw new Error(message);
@@ -257,7 +238,7 @@ class App extends Component {
     handleRIB2DB = async () => {
         this.setState(() => ({ isFetching: true }));
         try {
-            const res = await fetch(`${URL_GORIB_API}/rib2db`);
+            const res = await fetch(`${URL_GORIB_API[this.state.Tab]}/rib2db`);
             if (!res.ok) {
                 const message = `An error has occured: ${res.status} - ${res.statusText}`;
                 throw new Error(message);
@@ -274,7 +255,7 @@ class App extends Component {
     handleClearDB = async () => {
         this.setState(() => ({ isFetching: true }));        
         try {
-            const res = await fetch(`${URL_GORIB_API}/cleardb`);
+            const res = await fetch(`${URL_GORIB_API[this.state.Tab]}/cleardb`);
             if (!res.ok) {
                 const message = `An error has occured: ${res.status} - ${res.statusText}`;
                 throw new Error(message);
@@ -293,7 +274,7 @@ class App extends Component {
     handleClearRIB = async () => {
         this.setState(() => ({ isFetching: true }));
         try {
-            const res = await fetch(`${URL_GORIB_API}/delallrib`);
+            const res = await fetch(`${URL_GORIB_API[this.state.Tab]}/delallrib`);
             if (!res.ok) {
                 const message = `An error has occured: ${res.status} - ${res.statusText}`;
                 throw new Error(message);
@@ -345,9 +326,9 @@ class App extends Component {
     }
 
     restPutData = async (px) => {
-        if (px.ip) {
+        if (px.src) {
             try {
-                const response = await fetch(`${URL_MONGO_API[this.state.Tab]}/${px.ip}`, {
+                const response = await fetch(`${URL_MONGO_API[this.state.Tab]}/${px.src}`, {
                     method: "put",
                     headers: {
                         "Content-Type": "application/json",
@@ -376,10 +357,10 @@ class App extends Component {
         }
     }
 
-    restDelData = async (ip) => {
-        if (ip) {
+    restDelData = async (src) => {
+        if (src) {
             try {
-                const response = await fetch(`${URL_MONGO_API[this.state.Tab]}/${ip}`, { method: "delete" });
+                const response = await fetch(`${URL_MONGO_API[this.state.Tab]}/${src}`, { method: "delete" });
                 //const data = await response.json();
                 if (DEBUG) {
                     const result = {
@@ -395,7 +376,7 @@ class App extends Component {
     }
 
     render() {
-        const { Tab, Data, View, changes, index, isOneOpen, isBulkOpen, isFlowSpecOpen, search, checkbx, isFetching } = this.state
+        const { Tab, Data, View, changes, index, isFormOpen, isBulkOpen, search, checkbx, isFetching } = this.state
         
         const searchStyle = {
             //      margin: '20px 0px',
@@ -429,7 +410,7 @@ class App extends Component {
         }
         return (                        
             <div className="container">
-                <AppTabs onSelect={this.handleTabSelect} activeKey={this.state.Tab}/>
+                <AppTabs onSelect={this.handleTabSelect} activeKey={Tab}/>
                 {/* search box */}                    
                 <div className="search" style={search_floater}> <i className="fa fa-search"></i>
                     <div className="input-group">
@@ -455,17 +436,17 @@ class App extends Component {
                         <label htmlFor="search">In View: {View.length}</label>
                     </div>
                     <div>
-                        <label>Tab: {this.state.Tab}</label>
+                        <label>Tab: {Tab}</label>
                     </div>
                 </div>
                 
                 <Table Tab={Tab} Data={View} changes={changes} pxRemove={this.pxRemove} pxEdit={this.pxEdit}/>
                 
-                <div className="buttons" style={buttonsRowStyle}>
-                    { this.state.Tab === "unicast" && <button onClick={this.openOneModal} style={buttonStyle} type="button" className="btn btn-outline-primary">New Prefix</button> }
-                    { this.state.Tab === "unicast" && <button onClick={this.openBulkModal} style={buttonStyle} type="button" className="btn btn-outline-primary">Bulk Load</button> }
-                    { this.state.Tab === "flowspec" && <button onClick={this.openFlowSpecModal} style={buttonStyle} type="button" className="btn btn-outline-primary">New Policy</button>}
-                    <button onClick={(e) => this.loaddata(this.state.Tab, e)} style={buttonStyle} type="button" className="btn btn-outline-secondary">ReLoad</button>
+                <div className="buttons" style={buttonsRowStyle}>                    
+                    { Tab === "unicast" && <button onClick={this.openFormModal} style={buttonStyle} type="button" className="btn btn-outline-primary">New Prefix</button> }
+                    { Tab === "flowspec" && <button onClick={this.openFormModal} style={buttonStyle} type="button" className="btn btn-outline-primary">New Policy</button>}
+                    { Tab === "unicast" && <button onClick={this.openBulkModal} style={buttonStyle} type="button" className="btn btn-outline-primary">Bulk Load</button> }
+                    <button onClick={(e) => this.loaddata(Tab, e)} style={buttonStyle} type="button" className="btn btn-outline-secondary">ReLoad</button>
                     <button onClick={this.handleSubmit} disabled={Object.keys(changes).length===0} style={buttonStyle} type="button" className="btn btn-outline-danger">Save to DB</button>                    
                 </div>
                 <div className="buttons" style={buttonsRowStyle}>
@@ -478,9 +459,8 @@ class App extends Component {
                     <button onClick={this.handleClearDB} disabled={!checkbx} style={buttonStyle} type="button" className="btn btn-outline-dark">Clear DB</button>
                     <button onClick={this.handleClearRIB} disabled={!checkbx} style={buttonStyle} type="button" className="btn btn-outline-dark">Clear RIB</button>
                 </div>
-                <OneModal Data={View} changes={changes} index={index} isOpen={isOneOpen} hideModal={this.hideOneModal} handleFormSubmit={this.handleFormOneSubmit}/>                           
-                <BulkModal isOpen={isBulkOpen} hideModal={this.hideBulkModal} handleFormSubmit={this.handleFormBulkSubmit}/>
-                <FlowspecModal Data={View} changes={changes} index={index} isOpen={isFlowSpecOpen} hideModal={this.hideFlowSpecModal} handleFormSubmit={this.handleFormFlowspecSubmit}/>
+                <FormModal Tab={Tab} Data={View} changes={changes} index={index} isOpen={isFormOpen} hideModal={this.hideFormModal} handleFormSubmit={this.handleFormSubmit}/>                           
+                <FormBulkModal isOpen={isBulkOpen} hideModal={this.hideBulkModal} handleFormSubmit={this.handleFormBulkSubmit}/>
                 <SpinerModal show={isFetching}/>                  
             </div>
         )

@@ -22,7 +22,7 @@ def AddPath(px: PathDataClass):
     nlri = Any()
     nlri.Pack(attribute_pb2.IPAddressPrefix(
         prefix_len=px.prefix_len,
-        prefix=px.ip,
+        prefix=px.src,
     ))
 
     origin = Any()
@@ -54,7 +54,7 @@ def DelPath(px: PathDataClass):
     nlri = Any()
     nlri.Pack(attribute_pb2.IPAddressPrefix(
         prefix_len=px.prefix_len,
-        prefix=px.ip,
+        prefix=px.src,
     ))
     next_hop = Any()
     next_hop.Pack(attribute_pb2.NextHopAttribute(
@@ -88,10 +88,10 @@ def ListPath() -> list:
     res = []
     for path in paths:
         px = path.destination.prefix
-        ip, prefix_len = px.split("/")
+        src, prefix_len = px.split("/")
         prefix_len = int(prefix_len)
         next_hop = path.destination.paths[0].pattrs[1].value.decode()[2:]
                 
-        res.append(dict(ip=ip, prefix_len=prefix_len, next_hop=next_hop))
+        res.append(dict(src=src, prefix_len=prefix_len, next_hop=next_hop))
         
     return res

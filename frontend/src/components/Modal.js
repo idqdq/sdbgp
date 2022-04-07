@@ -4,8 +4,13 @@ import FormBulk from './FormBulk'
 import FlowspecForm from './FormFlowspec'
 import '../spinner.css'
 
-const OneModal = ({index, Data, ...props}) => {
-    const modalTitle = index!==undefined && Data[index] ? 'Edit Prefix:' + Data[index].ip : 'New Prefix';
+const Entity = {
+    unicast: 'Prefix',
+    flowspec: 'FlowSpec Policy',
+}
+
+const FormModal = ({Tab, Data, index, ...props}) => {
+    const modalTitle = index!==undefined && Data[index] ? 'Edit ' + Entity[Tab] + ': ' + Data[index].src : 'New ' + Entity[Tab];
     return (
         <Modal show={props.isOpen}
             onHide={props.hideModal}
@@ -15,13 +20,14 @@ const OneModal = ({index, Data, ...props}) => {
                 <Modal.Title>{modalTitle}</Modal.Title>
             </Modal.Header>
             <Modal.Body>
-                <Form handleSubmit={props.handleFormSubmit} Data={Data} changes={props.changes} index={index}/>
+                { Tab==='unicast' && <Form handleSubmit={props.handleFormSubmit} Data={Data} changes={props.changes} index={index}/>}
+                { Tab==='flowspec' && <FlowspecForm handleSubmit={props.handleFormSubmit} Data={Data} changes={props.changes} index={index}/>}
             </Modal.Body>
         </Modal>
     )
 };
 
-const BulkModal = (props) => {
+const FormBulkModal = (props) => {
     const modalTitle = 'Bulk Prefix loads';
     return (
         <Modal show={props.isOpen}
@@ -38,22 +44,6 @@ const BulkModal = (props) => {
     )
 };
 
-const FlowspecModal = ({index, Data, ...props}) => {
-    const modalTitle = index!==undefined && Data[index] ? 'Edit FlowSpec Policy:' + Data[index].src : 'New FlowSpec policy';
-    return (
-        <Modal show={props.isOpen}
-            onHide={props.hideModal}
-            backdrop="static"
-        >
-            <Modal.Header closeButton className="btn-success">
-                <Modal.Title>{modalTitle}</Modal.Title>
-            </Modal.Header>
-            <Modal.Body>
-                <FlowspecForm handleSubmit={props.handleFormSubmit} Data={Data} changes={props.changes} index={index}/>
-            </Modal.Body>
-        </Modal>
-    )
-};
 
 const SpinerModal = (props) => {
     if (props.show)
@@ -65,4 +55,4 @@ const SpinerModal = (props) => {
     else return null;
 }
 
-export { SpinerModal, OneModal, BulkModal, FlowspecModal }
+export { SpinerModal, FormModal, FormBulkModal }
