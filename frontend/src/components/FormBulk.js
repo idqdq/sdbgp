@@ -25,7 +25,7 @@ class FormBulk extends Component {
 
             const ip = res[0].trim();
             if(ip && IpAddrPattern.test(ip)){
-                obj.ip = ip;
+                obj.src = ip;
             } else {
                 errors["ip"] = 'content ' + res[0] + ' must be a valid IP addresses';
                 return false;
@@ -34,7 +34,7 @@ class FormBulk extends Component {
             if (res[1]) {
                 const prefix_len = res[1].trim();
                 if (isNaN(prefix_len) || prefix_len > 32 || prefix_len < 16) {
-                    errors["prefix_len"] = 'content must be a valid IP addresses';
+                    errors["ip"] = 'prefix_len range 16..32';
                     return false;
                 } else {
                     obj.prefix_len = prefix_len;
