@@ -28,9 +28,11 @@ class App extends Component {
     }
 
     loaddata = async (tab=this.state.Tab) => {
+        this.openSpinner();
         const response = await fetch(URL_MONGO_API[tab]);
         const data = await response.json();
-        this.setState({ Data: data, View: data, search: '', changes: {}, isFetching: false, checkbx: false })
+        this.setState({ Data: data, View: data, search: '', changes: {}, checkbx: false })
+        this.hideSpinner();
     }
 
     async componentDidMount(){
@@ -61,6 +63,14 @@ class App extends Component {
             isBulkOpen: false
         });                
     }    
+
+    openSpinner = () => {
+        this.setState(() => ({ isFetching: true }));
+    }
+
+    hideSpinner = () => {
+        this.setState(() => ({ isFetching: false }));
+    }
 
     pxRemove = index => {
         const { Data, View, changes } = this.state;
@@ -423,7 +433,7 @@ class App extends Component {
                                 value={search || ''}
                                 onChange={this.handleSearchChange}
                                 style={searchStyle} 
-                                disabled={ Data.length > 1000 }/>
+                                disabled={ Data.length > 5000 }/>
                             <label htmlFor="search" style={searchStyle}>Prefix search</label>
                         </div>
                     </div>
@@ -460,7 +470,7 @@ class App extends Component {
                     <button onClick={this.handleClearRIB} disabled={!checkbx} style={buttonStyle} type="button" className="btn btn-outline-dark">Clear RIB</button>
                 </div>
                 <FormModal Tab={Tab} Data={View} changes={changes} index={index} isOpen={isFormOpen} hideModal={this.hideFormModal} handleFormSubmit={this.handleFormSubmit}/>                           
-                <FormBulkModal isOpen={isBulkOpen} hideModal={this.hideBulkModal} handleFormSubmit={this.handleFormBulkSubmit}/>
+                <FormBulkModal isOpen={isBulkOpen} hideModal={this.hideBulkModal} handleFormSubmit={this.handleFormBulkSubmit}  openSpinner={this.openSpinner} hideSpinner={this.hideSpinner}/>
                 <SpinerModal show={isFetching}/>                  
             </div>
         )

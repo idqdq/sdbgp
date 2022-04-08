@@ -1,11 +1,11 @@
-from sys import prefix
-from fastapi import FastAPI, Request, Response, Body, status, HTTPException
+from fastapi import FastAPI, Response, Body, status, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse
-from typing import List, Union
+from typing import List
+from gobgp_api_flowspec import AddPathFlowSpec, DelPathFlowSpec, ListPathFlowSpec
 from gobgp_api_unicast import AddPath, DelPath, ListPath
-from models import PxDataClass, PathDataClass, FlowSpecDataClass
+from models import PathDataClass, FlowSpecDataClass
 
 app = FastAPI()
 
@@ -105,8 +105,6 @@ async def createBulkPx(pxlist: List[PathDataClass]):
 
     return JSONResponse(status_code=status.HTTP_201_CREATED, content="Ok")
 
-
-
 @app.put("/mongo/unicast/{src}", response_description="Update prefix", response_model=PathDataClass)
 async def updatePx(src: str, px: PathDataClass = Body(...)):
     px = jsonable_encoder(px)
@@ -164,15 +162,28 @@ async def deleteFlowspec(src: str):
 async def gobgp_addpath(px: PathDataClass = Body(...)):
     AddPath(px)
 
+@app.post("/gobgp/flowspec/add") # adds prefix into gobgp
+async def gobgp_addpath_flowspec(px: FlowSpecDataClass = Body(...)):
+    AddPathFlowSpec(px)
+
 
 @app.post("/gobgp/unicast/del") # deletes prefix from gobgp
 async def gobgp_delpath(px: PathDataClass = Body(...)):
     DelPath(px)
 
+@app.post("/gobgp/flowspec/del") # deletes prefix from gobgp
+async def gobgp_delpath_flowspec(px: FlowSpecDataClass = Body(...)):
+    DelPathFlowSpec(px)
+
 
 @app.get("/gobgp/unicast/list") # returns all the prefixes from within gobgp
 async def gobgp_listall():    
     result = ListPath()
+    return JSONResponse(status_code=status.HTTP_200_OK, content=result)
+
+@app.get("/gobgp/flowspec/list") # returns all the prefixes from within gobgp
+async def gobgp_listall_flowspec():    
+    result = ListPathFlowSpec()
     return JSONResponse(status_code=status.HTTP_200_OK, content=result)
 
 

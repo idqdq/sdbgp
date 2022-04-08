@@ -90,3 +90,13 @@ class FlowSpecDataClass(BaseModel):
             }
         }
 
+class FlowSpecGoBGPDataClass(BaseModel):
+    src: str
+    src_prefix_len: int
+    dst: Optional[str] = ''
+    dst_prefix_len: Optional[int] = 32
+    src_ports: Optional[str] = ''
+    dst_ports: Optional[str] = ''
+    protocols: Optional[List[str]] = ''
+    rate_limit: int = 0
+    negate: bool = False

@@ -38,7 +38,7 @@ const FormBulkModal = (props) => {
                 <Modal.Title>{modalTitle}</Modal.Title>
             </Modal.Header>
             <Modal.Body>
-                <FormBulk handleSubmit={props.handleFormSubmit} />
+                <FormBulk handleSubmit={props.handleFormSubmit} openSpinner={props.openSpinner} hideSpinner={props.hideSpinner}/>
             </Modal.Body>
         </Modal>
     )

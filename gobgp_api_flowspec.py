@@ -1,8 +1,10 @@
+from asyncio import protocols
 from typing import List, Optional, Tuple, Iterable
 from google.protobuf.any_pb2 import Any
 import grpc
 from grpclib import attribute_pb2, gobgp_pb2_grpc, gobgp_pb2
 from grpclib.attribute_pb2 import FlowSpecComponent, FlowSpecComponentItem, FlowSpecNLRI
+from models import FlowSpecDataClass, FlowSpecGoBGPDataClass
 
 
 GOBGP_CONN = '127.0.0.1:50051'
@@ -10,6 +12,7 @@ NEXT_HOP = '0.0.0.0'
 ORIGIN_INCOMPLETE = 2
 TIMEOUT_SECONDS = 10
 IPv4_FLOWSPEC=gobgp_pb2.Family(afi=gobgp_pb2.Family.AFI_IP, safi=gobgp_pb2.Family.SAFI_FLOW_SPEC_UNICAST)
+table_type=gobgp_pb2.GLOBAL
 
 NUMBER_PORTS = 65535
 
@@ -47,7 +50,7 @@ class FlowSpecBuilder:
                  src: str,
                  src_prefix_len: int,
                  dst: Optional[str] = '',
-                 dst_prefix_len: Optional[int] = 0,
+                 dst_prefix_len: Optional[int] = 32,
                  src_ports: Optional[str] = '',
                  dst_ports: Optional[str] = '',
                  protocols: Optional[List[str]] = '',
@@ -220,13 +223,13 @@ if __name__ == '__main__':
                         src_ports='22, 80-90, 500-8000',
                         protocols=['tcp', 'udp'],
                         negate=True)
-                        
+
     flowspec_nlri = b.create_rules()
     attributes = b.create_attibutes()
 
     response = stub.AddPath(
         gobgp_pb2.AddPathRequest(
-            table_type=gobgp_pb2.GLOBAL,
+            table_type=table_type,
             path=gobgp_pb2.Path(
                 nlri=flowspec_nlri,
                 pattrs=attributes,
@@ -264,3 +267,145 @@ if __name__ == '__main__':
     #     ),
     #     1000,
     # )
+
+
+
+
+def _normalizeData(px):
+    if '/' in px.src:
+        src, src_prefix_len = px.src.split('/')
+        src_prefix_len = int(src_prefix_len)
+    else:
+        src, src_prefix_len = px.src, 32
+
+    if px.dst:
+        if '/' in px.dst:
+            dst, dst_prefix_len = px.dst.split('/')
+            dst_prefix_len = int(dst_prefix_len)
+        else:
+            dst, dst_prefix_len = px.dst, 32
+    else:
+        dst, dst_prefix_len = '', 0
+
+    src_ports = px.src_ports if px.src_ports else ''
+    dst_ports = px.dst_ports if px.dst_ports else ''
+
+    protocols = px.protocols.replace(' ', '').split(',') if px.protocols else []
+    rate_limit = px.rate_limit if px.rate_limit else 0
+
+    return FlowSpecGoBGPDataClass(src=src,
+                                  src_prefix_len=src_prefix_len,
+                                  dst=dst,
+                                  dst_prefix_len=dst_prefix_len,
+                                  src_ports=src_ports,
+                                  dst_ports=dst_ports,
+                                  protocols=protocols,
+                                  rate_limit=rate_limit)
+
+
+def _getStub(data: FlowSpecGoBGPDataClass):
+    channel = grpc.insecure_channel(GOBGP_CONN)
+    stub = gobgp_pb2_grpc.GobgpApiStub(channel)
+
+    b = FlowSpecBuilder(src=data.src,
+                        src_prefix_len=data.src_prefix_len,
+                        src_ports=data.src_ports,
+                        dst=data.dst,
+                        dst_prefix_len=data.dst_prefix_len,
+                        dst_ports=data.dst_ports,
+                        protocols=data.protocols,
+                        rate_limit=data.rate_limit)
+    
+    flowspec_nlri = b.create_rules()
+    attributes = b.create_attibutes()
+
+    return stub, flowspec_nlri, attributes
+
+
+def AddPathFlowSpec(px: FlowSpecDataClass):
+    
+    data = _normalizeData(px)
+    stub, flowspec_nlri, attributes = _getStub(data)
+
+    response = stub.AddPath(
+        gobgp_pb2.AddPathRequest(
+            table_type=table_type,
+            path=gobgp_pb2.Path(
+                nlri=flowspec_nlri,
+                pattrs=attributes,
+                family=IPv4_FLOWSPEC,
+            )
+        ),
+        TIMEOUT_SECONDS,
+    )
+
+"""
+    data = normalizeData(px)
+
+    channel = grpc.insecure_channel(GOBGP_CONN)
+    stub = gobgp_pb2_grpc.GobgpApiStub(channel)
+
+    b = FlowSpecBuilder(src=data.src,
+                        src_prefix_len=data.src_prefix_len,
+                        src_ports=data.src_ports,
+                        dst=data.dst,
+                        dst_prefix_len=data.dst_prefix_len,
+                        protocols=data.protocols,
+                        rate_limit=data.rate_limit)
+
+
+    flowspec_nlri = b.create_rules()
+    attributes = b.create_attibutes()
+
+    response = stub.AddPath(
+        gobgp_pb2.AddPathRequest(
+            table_type=gobgp_pb2.GLOBAL,
+            path=gobgp_pb2.Path(
+                nlri=flowspec_nlri,
+                pattrs=attributes,
+                family=IPv4_FLOWSPEC,
+            )
+        ),
+        TIMEOUT_SECONDS,
+    )
+    
+"""
+
+def DelPathFlowSpec(px: FlowSpecDataClass):
+
+    data = _normalizeData(px)
+    stub, flowspec_nlri, attributes = _getStub(data)
+
+    stub.DeletePath(
+        gobgp_pb2.DeletePathRequest(
+            table_type=table_type,
+            path=gobgp_pb2.Path(
+                nlri=flowspec_nlri,
+                pattrs=attributes,
+                family=IPv4_FLOWSPEC,                
+            ),
+        ),
+        TIMEOUT_SECONDS,
+    )
+
+def ListPathFlowSpec() -> list:
+    channel = grpc.insecure_channel(GOBGP_CONN)
+    stub = gobgp_pb2_grpc.GobgpApiStub(channel)
+
+    paths = stub.ListPath(
+        gobgp_pb2.ListPathRequest(
+            table_type=table_type,
+            family=IPv4_FLOWSPEC,
+        ),
+        TIMEOUT_SECONDS, 
+    )
+
+    res = []
+
+    for path in paths:    
+        msg1 = gobgp_pb2.ListPathResponse()
+        msg1.FromString(path.destination.paths[0].pattrs[2].value)
+        
+        #msg2 = path.destination.paths[0].pattrs[2].SerializeToString()
+        
+    return res
