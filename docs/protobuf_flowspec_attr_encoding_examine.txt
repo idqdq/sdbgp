@@ -1,0 +1,142 @@
+[destination: 10.20.30.0/32][source: 1.2.3.4/32][protocol: ==tcp ==udp][destination-port: ==80 ==443 >=5000&<=6000][source-port: >=1024&<=65535] fictitious                                00:00:37   [{Origin: ?} {Extcomms: [discard]}]
+
+
+
+path.destination.paths[0].nlri.value
+type_url: "type.googleapis.com/gobgpapi.FlowSpecNLRI"
+value: "\nA\n-type.googleapis.com/gobgpapi.FlowSpecIPPrefix\022\020\010\001\020 \032\n10.20.30.0\n>\n-type.googleapis.com/gobgpapi.FlowSpecIPPrefix\022\r\010\002\020 \032\0071.2.3.4\nA\n.type.googleapis.com/gobgpapi.FlowSpecComponent\022\017\010\003\022\004\010\001\020\006\022\005\010\201\001\020\021\nP\n.type.googleapis.com/gobgpapi.FlowSpecComponent\022\036\010\005\022\004\010\001\020P\022\005\010\021\020\273\003\022\005\010\023\020\210\'\022\006\010\325\001\020\360.\nD\n.type.googleapis.com/gobgpapi.FlowSpecComponent\022\022\010\006\022\005\010\023\020\200\010\022\007\010\325\001\020\377\377\003"
+
+
+path.destination.paths[0].pattrs[2]
+type_url: "type.googleapis.com/gobgpapi.MpReachNLRIAttribute"
+value: "\n\005\010\001\020\205\001\032\214\003\n)type.googleapis.com/gobgpapi.FlowSpecNLRI\022\336\002\nA\n-type.googleapis.com/gobgpapi.FlowSpecIPPrefix\022\020\010\001\020 \032\n10.20.30.0\n>\n-type.googleapis.com/gobgpapi.FlowSpecIPPrefix\022\r\010\002\020 \032\0071.2.3.4\nA\n.type.googleapis.com/gobgpapi.FlowSpecComponent\022\017\010\003\022\004\010\001\020\006\022\005\010\201\001\020\021\nP\n.type.googleapis.com/gobgpapi.FlowSpecComponent\022\036\010\005\022\004\010\001\020P\022\005\010\021\020\273\003\022\005\010\023\020\210\'\022\006\010\325\001\020\360.\nD\n.type.googleapis.com/gobgpapi.FlowSpecComponent\022\022\010\006\022\005\010\023\020\200\010\022\007\010\325\001\020\377\377\003"
+
+
+path.destination.paths[0].pattrs[1]
+type_url: "type.googleapis.com/gobgpapi.ExtendedCommunitiesAttribute"
+value: "\n2\n0type.googleapis.com/gobgpapi.TrafficRateExtended"
+
+
+
+protobuf
+
+message ListPathResponse { Destination destination = 1; }
+message Destination {
+  string prefix = 1;
+  repeated Path paths = 2;
+}
+message Path {
+  // One of the following defined in "api/attribute.proto":
+  // - IPAddressPrefix
+  // - FlowSpecNLRI
+  ...
+  google.protobuf.Any nlri = 1;
+  // Each attribute must be one of *Attribute defined in
+  // "api/attribute.proto".
+  repeated google.protobuf.Any pattrs = 2;
+  ...
+}
+
+
+message FlowSpecIPPrefix {
+  uint32 type = 1;
+  uint32 prefix_len = 2;
+  string prefix = 3;
+  // IPv6 only
+  uint32 offset = 4;
+}
+
+
+
+rules=rules {
+  type_url: "type.googleapis.com/gobgpapi.FlowSpecIPPrefix"
+  value: "\010\001\020 \032\n10.20.30.0"
+}
+rules {
+  type_url: "type.googleapis.com/gobgpapi.FlowSpecIPPrefix"
+  value: "\010\002\020 \032\0071.2.3.4"
+}
+rules {
+  type_url: "type.googleapis.com/gobgpapi.FlowSpecComponent"
+  value: "\010\003\022\004\010\001\020\006\022\005\010\201\001\020\021"
+}
+rules {
+  type_url: "type.googleapis.com/gobgpapi.FlowSpecComponent"
+  value: "\010\005\022\004\010\001\020P\022\005\010\021\020\273\003\022\005\010\023\020\210\'\022\006\010\325\001\020\360."
+}
+rules {
+  type_url: "type.googleapis.com/gobgpapi.FlowSpecComponent"
+  value: "\010\006\022\005\010\023\020\200\010\022\007\010\325\001\020\377\377\003"
+}
+
+msg=type: 1
+prefix_len: 32
+prefix: "10.20.30.0"
+
+msg=type: 2
+prefix_len: 32
+prefix: "1.2.3.4"
+
+msg=type: 3
+items {
+  op: 1 => 0000 0001
+  value: 6
+}
+items {
+  op: 129 => 1000 0001
+  value: 17
+}
+
+msg=type: 5
+items {
+  op: 1 => 0000 0001    ==
+  value: 80
+}
+items {
+  op: 17 => 0001 0001   ==
+  value: 443
+}
+items {
+  op: 19 => 0001 0011   >=
+  value: 5000
+}
+items {
+  op: 213 => 1101 0101   end, &<=
+  value: 6000
+}
+
+msg=type: 6
+items {
+  op: 19 => 0001 0011    >=
+  value: 1024
+}
+items {
+  op: 213 => 1101 0101   end,&<= 
+  value: 65535
+}
+
+  0   1   2   3   4   5   6   7
++---+---+---+---+---+---+---+---+
+| e | a |  len  | 0 |lt |gt |eq |
++---+---+---+---+---+---+---+---+
+
+                                Numeric operator
+
+         e -   end-of-list bit.  Set in the last {op, value} pair in the
+               list.
+
+         a -   AND bit.  If unset, the previous term is logically ORed
+               with the current one.  If set, the operation is a logical
+               AND.  It should be unset in the first operator byte of a
+               sequence.  The AND operator has higher priority than OR
+               for the purposes of evaluating logical expressions.
+
+         len - The length of the value field for this operand is given
+               as (1 << len). 0-255:0 255-65536:1 etc
+
+         lt -  less than comparison between data and value.
+
+         gt -  greater than comparison between data and value.
+
+
+[destination: 10.20.30.0/32][source: 1.2.3.4/32][protocol: ==tcp ==udp][destination-port: ==80 ==443 >=5000&<=6000][source-port: >=1024&<=65535] fictitious                                00:00:37   [{Origin: ?} {Extcomms: [discard]}]

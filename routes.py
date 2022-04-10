@@ -184,7 +184,7 @@ async def gobgp_listall():
 @app.get("/gobgp/flowspec/list") # returns all the prefixes from within gobgp
 async def gobgp_listall_flowspec():    
     result = ListPathFlowSpec()
-    return JSONResponse(status_code=status.HTTP_200_OK, content=result)
+    return JSONResponse(status_code=status.HTTP_200_OK, content=jsonable_encoder(result))
 
 
 @app.get("/gobgp/unicast/delallfromdb") # Deletes all the prefixes from GoBGP existing in Mongo 
