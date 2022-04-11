@@ -1,6 +1,6 @@
 ## custom data class with the mongo specific ObjectId 
-from typing import Optional, List
-from enum import IntEnum
+from typing import Optional, List, Union
+from enum import Enum
 from pydantic import BaseModel, Field, validator
 from bson import ObjectId
 from ipaddress import IPv4Address
@@ -62,26 +62,25 @@ class PathDataClass(BaseModel):
         }
 
 
-class FlowSpecAction(IntEnum):
-    ACTION_DISCARD = 1
-    ACTION_ACCEPT = 2
-    ACTION_RATE_LIMIT = 3
+class FlowSpecAction(Enum):
+    ACTION_DISCARD: int = 1
+    ACTION_RATE_LIMIT: int = 2
+    ACTION_ACCEPT: 3
 
 class FlowSpecDataClass(BaseModel):
     src: str    
     dst: Optional[str] = ''    
     src_ports: Optional[str] = ''
-    dst_ports: Optional[str] = ''
-    #protocols: Optional[List[str]] = ''
+    dst_ports: Optional[str] = ''    
     protocols: Optional[str] = ''
-    action: str = ''
+    action: FlowSpecAction = FlowSpecAction.ACTION_DISCARD
     rate_limit: int = 0
 
     class Config:
         schema_extra = {
             "example": {
                 "src": "1.2.3.4/32",                
-                "dst": "10.20.30.0",
+                "dst": "10.20.30.0/24",
                 "src_ports": "1024-65535",
                 "dst_ports": "80, 443, 5000-6000",
                 "protocols": "tcp, udp",
@@ -90,6 +89,7 @@ class FlowSpecDataClass(BaseModel):
             }
         }
 
+
 class FlowSpecGoBGPDataClass(BaseModel):
     src: str
     src_prefix_len: int
@@ -97,6 +97,5 @@ class FlowSpecGoBGPDataClass(BaseModel):
     dst_prefix_len: Optional[int] = 32
     src_ports: Optional[str] = ''
     dst_ports: Optional[str] = ''
-    protocols: Optional[List[str]] = ''
-    rate_limit: int = 0
-    negate: bool = False
+    protocols: Optional[List[str]] = []
+    rate_limit: Union[None, int] = 0

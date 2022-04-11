@@ -36,7 +36,8 @@ class FlowSpecComposer:
         '!=': 6,
         '&': 69  # rfc5575
     }
-
+    
+    
     def __init__(self,
                  src: str,
                  src_prefix_len: int,
@@ -74,7 +75,7 @@ class FlowSpecComposer:
                
     def _get_nlri(self, prefix: str, prefix_len: int, direction: str):
         nlri = Any()
-        nlri.Pack(attribute_pb2.FlowSpecIPPrefix(
+        nlri.Pack(FlowSpecIPPrefix(
             type=self._SRC_DST_IP_MAP[direction],
             prefix_len=prefix_len,
             prefix=prefix
@@ -138,8 +139,12 @@ class FlowSpecComposer:
     def create_attibutes(self):
         next_hop = Any()
         next_hop.Pack(attribute_pb2.NextHopAttribute(next_hop=NEXT_HOP))
+        
         origin = Any()
         origin.Pack(attribute_pb2.OriginAttribute(origin=ORIGIN_INCOMPLETE))
+
+        if self.rate_limit == None:
+            return [next_hop, origin]
         traffic_rate = Any()
         traffic_rate.Pack(attribute_pb2.TrafficRateExtended(rate=self.rate_limit))
         community = Any()
