@@ -1,7 +1,6 @@
-from typing import List, Optional, Tuple, Union
-from google.protobuf.any_pb2 import Any
-from grpclib import attribute_pb2
-from grpclib.attribute_pb2 import ExtendedCommunitiesAttribute, FlowSpecComponent, FlowSpecComponentItem, FlowSpecNLRI, FlowSpecIPPrefix, OriginAttribute, TrafficRateExtended
+from typing import List, Tuple, Union
+from grpclib.attribute_pb2 import (FlowSpecComponent, FlowSpecComponentItem, FlowSpecNLRI, 
+FlowSpecIPPrefix, OriginAttribute, NextHopAttribute, ExtendedCommunitiesAttribute, TrafficRateExtended,)
 from grpclib.gobgp_pb2 import ListPathResponse
 
 class FlowSpecDecomposer:
@@ -18,6 +17,14 @@ class FlowSpecDecomposer:
         self.path = path
         self.attrs = path.destination.paths[0].pattrs
         self.nlri = path.destination.paths[0].nlri.value
+
+
+    def __str__(self):
+        return(print(f"{self.path=}\n{self.attrs=}\n{self.nlri=}"))
+
+
+    def __repr__(self):
+        return(print(f"{self.path=}\n{self.attrs=}\n{self.nlri=}"))
 
 
     def get_nlri(self) -> dict:
@@ -48,11 +55,10 @@ class FlowSpecDecomposer:
                 msg = FlowSpecComponent.FromString(rule.value)                
 
                 if msg.type == 3:
+                    protocols = []
                     for item in msg.items:
-                        if nrli_data.get("protocols"):
-                            nrli_data["protocols"] += ', ' + self.PROTOCOLS_MAP[item.value]
-                        else: 
-                            nrli_data["protocols"] = self.PROTOCOLS_MAP[item.value]
+                        protocols.append(self.PROTOCOLS_MAP[item.value])                        
+                    nrli_data["protocols"] = ', '.join(protocols)
                 elif msg.type == 5:
                     nrli_data["dst_ports"] = self._decode_flowspec_nlri_value(msg.items)
                 elif msg.type == 6:
@@ -66,24 +72,38 @@ class FlowSpecDecomposer:
         Args:
             N/A
         Returns:
-            returns two values:
-            * Origin:  
+            returns two values:            
             * Rate-limit: 
                 - None: action ACCEPT
                 - 0: action DISCARD
-                - >= 1: action rate-limit        
+                - >= 1: action rate-limit   
+            * Origin:  
+                - 2: ORIGIN_INCOMPLETE (?)
+            * NextHop: 
+                commented out: didn't test it
+            * RT: redirect to VRF with the given RT
+                commented out: didn't test it
         """
         origin = 0
         rate_limit = None        
 
-        for index in range (len(self.attrs)):
-            if self.attrs[index].type_url == 'type.googleapis.com/gobgpapi.OriginAttribute':
-                origin = OriginAttribute.FromString(self.attrs[index].value)
+        for index in range (len(self.attrs)):            
             if self.attrs[index].type_url == 'type.googleapis.com/gobgpapi.ExtendedCommunitiesAttribute':
-                communities = ExtendedCommunitiesAttribute.FromString(self.attrs[index].value)
-                rate_limit = TrafficRateExtended.FromString(communities.communities[0].value).rate
-    
-        return origin, rate_limit           
+                communities = ExtendedCommunitiesAttribute.FromString(self.attrs[index].value)                            
+                for community in communities.communities:                                            
+                    if community.type_url == 'type.googleapis.com/gobgpapi.TrafficRateExtended':
+                        rate_limit = TrafficRateExtended.FromString(community.value).rate
+            
+                    # elif community.type_url == 'type.googleapis.com/gobgpapi.RedirectTwoOctetAsSpecificExtended':
+                    #    RT = RedirectTwoOctetAsSpecificExtended.FromString(community.value)             
+                    # 
+            elif self.attrs[index].type_url == 'type.googleapis.com/gobgpapi.OriginAttribute':
+                origin = OriginAttribute.FromString(self.attrs[index].value)
+
+            # elif self.attrs[index].type_url == 'type.googleapis.com/gobgpapi.NextHopAttribute':
+            #     next_hop = NextHopAttribute.FromString(self.attrs[index].value)
+
+        return rate_limit, origin
 
 
     def _decode_flowspec_nlri_value(self, items: List[FlowSpecComponentItem]) -> str:        
@@ -115,14 +135,16 @@ class FlowSpecDecomposer:
 
         to convert back from stream into the string we have to use some magic based on the above statements
         we don't care of bits 0,2,3 so we have a bitmask 0b10110000 = 176
-        (actually we do care of the 0th bit that means the value is last on the list and we don't need to put comma in the end)
-        thus the operations conversion would be:
-        op = op AND bitmask XOR op
+        (actually we do care of the 0th bit that means the value is a last item in the list and we don't need to put comma in the end)
+        thus the conversion operation would be:
+            
+            op = op AND bitmask XOR op
 
-        using python bitwise operators
-        op &= bitmask ^ op
+        and using python bitwise operators it transforms to:
+            
+            op &= bitmask ^ op
 
-        so lets assume we have some data decoded from stream:
+        Now lets assume we have some data decoded from stream:
         msg=type: 5
         items {
         op: 1 => 0000 0001    ==
@@ -140,14 +162,14 @@ class FlowSpecDecomposer:
         op: 213 => 1101 0101   end, &<=
         value: 6000
         }
-        using that technic we can translate it to the 
-        destination-port: ==80 ==443 >=5000&<=6000
-        it looks pretty the same output from the gobgp daemon
-        but we don't want that ugly format 
-        there are many operations that probably useful for tcp flags and fragments but we don't need them yet
-        in my case (src_dst_ports) only > and >= operations important. they mark the beginnig of a range
-        all over operations is just a comma (,) between values except the last one
-        bear that in mind we can easily convert the data to the string
+        using that technique we can translate it to the string
+          destination-port: ==80 ==443 >=5000&<=6000
+
+        and it looks pretty the same as the output from gobgp daemon but we don't want that ugly format 
+        There are many operations that probably useful for tcp flags and fragments but we don't need them yet
+        In my case (src_dst_ports) only > and >= operations important cause they mark the beginnig of a range
+        while all the other operations transforms to a simple comma (,) which separates values (except the last one of course)
+        with that in mind we can easily convert the data to the string
         dst_ports = '80,443,5000-6000'
         """
         BITMASK = 0b10110000
@@ -164,3 +186,35 @@ class FlowSpecDecomposer:
             result += str(item.value)+div
 
         return result
+
+
+### example ###
+if __name__ == '__main__':
+    import grpc
+    import gobgp_pb2_grpc
+    import gobgp_pb2
+
+    GOBGP_CONN = '127.0.0.1:50051'
+    TIMEOUT_SECONDS = 100
+
+    channel = grpc.insecure_channel(GOBGP_CONN)
+    stub = gobgp_pb2_grpc.GobgpApiStub(channel)
+
+    paths = stub.ListPath(
+        gobgp_pb2.ListPathRequest(
+            table_type=gobgp_pb2.GLOBAL,
+            family=gobgp_pb2.Family(afi=gobgp_pb2.Family.AFI_IP, safi=gobgp_pb2.Family.SAFI_FLOW_SPEC_UNICAST),
+        ),
+        TIMEOUT_SECONDS, 
+    )
+
+    res = []
+    for path in paths:     
+        decomp = FlowSpecDecomposer(path)
+        px = decomp.get_nlri()
+        px.rate_limit, px.origin = decomp.get_attrs()
+
+        print(px)
+    """
+    src='10.10.10.8/30' dst='' src_ports='' dst_ports='80,443,5000-6000' protocols='tcp, udp' rate_limit=10000.0
+    """

@@ -1,9 +1,9 @@
 import { Component } from 'react'
 import { Form, ToggleButton, ToggleButtonGroup } from "react-bootstrap";
 
-const ACTION_DISCARD = '1';
-const ACTION_ACCEPT = '2';
-const ACTION_RATE_LIMIT = '3';
+const ACTION_DISCARD = 1;
+const ACTION_ACCEPT = 2;
+const ACTION_RATE_LIMIT = 3;
 
 class FlowspecForm extends Component {       
     initialState = {
@@ -51,11 +51,18 @@ class FlowspecForm extends Component {
     }
 
     handleAction = (e) => {
-        e.preventDefault();        
-        this.setState ({ 
-            Data: { ...this.state.Data, action: e.target.previousSibling.value } //magic
-        })        
-        this.isFormValid();
+      e.preventDefault();
+      const action = parseInt(e.target.previousSibling.value); //magic
+      if (action !== ACTION_RATE_LIMIT) {
+        this.setState({
+          Data: { ...this.state.Data, action: action, rate_limit: 0 }
+        })
+      } else {
+        this.setState({
+          Data: { ...this.state.Data, action: action }
+        })
+      }
+      this.isFormValid();
     }
 
     isFormValid = () => {
@@ -221,7 +228,7 @@ class FlowspecForm extends Component {
           </ToggleButtonGroup>
           <Form.Control type="text"
             name="rate_limit"
-            placeholder="100000"
+            placeholder="0"
             disabled={action !== ACTION_RATE_LIMIT}
             onChange={this.handleChange}
             onBlur={this.handleBlur}

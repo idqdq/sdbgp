@@ -4,7 +4,7 @@ from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse
 from typing import List
 from gobgp_api_flowspec import AddPathFlowSpec, DelPathFlowSpec, ListPathFlowSpec
-from gobgp_api_unicast import AddPath, DelPath, ListPath
+from gobgp_api_unicast import AddPathUnicast, DelPathUnicast, ListPathUnicast
 from models import PathDataClass, FlowSpecDataClass
 
 app = FastAPI()
@@ -30,11 +30,11 @@ async def shutdown_db_client():
 ## mongo end
 
 ## CORS
-origins = [    
+origins = [
     "http://127.0.0.1",
     "http://127.0.0.1:3000",
     "http://localhost",
-    "http://localhost:3000",
+    "http://localhost:3000",    
 ]
 
 app.add_middleware(
@@ -118,8 +118,7 @@ async def updatePx(src: str, px: PathDataClass = Body(...)):
         result.pop("_id")
     else: 
         raise HTTPException(status_code=404, detail=f"Prefix {px['src']} not found")
-    
-    print(result)
+ 
     return JSONResponse(status_code=status.HTTP_200_OK, content=result)
 
 @app.put("/mongo/flowspec/{src:path}", response_description="Update flowspec policy", response_model=FlowSpecDataClass)
@@ -136,7 +135,6 @@ async def updateFlowspec(src: str, px: FlowSpecDataClass = Body(...)):
     else: 
         raise HTTPException(status_code=404, detail=f"Policy with src:{px['src']} not found")
     
-    print(result)
     return JSONResponse(status_code=status.HTTP_200_OK, content=result)
 
 
@@ -158,27 +156,9 @@ async def deleteFlowspec(src: str):
 
 
 ### GoBGP API Section ###
-@app.post("/gobgp/unicast/add") # adds prefix into gobgp
-async def gobgp_addpath(px: PathDataClass = Body(...)):
-    AddPath(px)
-
-@app.post("/gobgp/flowspec/add") # adds prefix into gobgp
-async def gobgp_addpath_flowspec(px: FlowSpecDataClass = Body(...)):
-    AddPathFlowSpec(px)
-
-
-@app.post("/gobgp/unicast/del") # deletes prefix from gobgp
-async def gobgp_delpath(px: PathDataClass = Body(...)):
-    DelPath(px)
-
-@app.post("/gobgp/flowspec/del") # deletes prefix from gobgp
-async def gobgp_delpath_flowspec(px: FlowSpecDataClass = Body(...)):
-    DelPathFlowSpec(px)
-
-
 @app.get("/gobgp/unicast/list") # returns all the prefixes from within gobgp
 async def gobgp_listall():    
-    result = ListPath()
+    result = ListPathUnicast()
     return JSONResponse(status_code=status.HTTP_200_OK, content=result)
 
 @app.get("/gobgp/flowspec/list") # returns all the prefixes from within gobgp
@@ -187,40 +167,78 @@ async def gobgp_listall_flowspec():
     return JSONResponse(status_code=status.HTTP_200_OK, content=jsonable_encoder(result))
 
 
-@app.get("/gobgp/unicast/delallfromdb") # Deletes all the prefixes from GoBGP existing in Mongo 
-async def gobgp_dumpAll():
-    async for px in app.unicast.find({}):   
-        px.pop("_id")     
-        DelPath(PathDataClass(**px))
+@app.post("/gobgp/unicast/add") # adds prefix into gobgp
+async def gobgp_addpath(px: PathDataClass = Body(...)):
+    AddPathUnicast(px)
+
+@app.post("/gobgp/flowspec/add") # adds prefix into gobgp
+async def gobgp_addpath_flowspec(px: FlowSpecDataClass = Body(...)):
+    AddPathFlowSpec(px)
 
 
-@app.get("/gobgp/unicast/delallrib") # Deletes all the prefixes from GoBGP
-async def gobgp_delallrib():
-    paths = ListPath()
+@app.post("/gobgp/unicast/del") # deletes prefix from gobgp
+async def gobgp_delpath(px: PathDataClass = Body(...)):
+    DelPathUnicast(px)
+
+@app.post("/gobgp/flowspec/del") # deletes prefix from gobgp
+async def gobgp_delpath_flowspec(px: FlowSpecDataClass = Body(...)):
+    DelPathFlowSpec(px)
+
+
+@app.get("/gobgp/unicast/delallrib") # Deletes all the unicast prefixes from GoBGP
+async def gobgp_unicast_delallrib():
+    paths = ListPathUnicast()
     if paths:
         for px in paths:                                    
-            DelPath(PathDataClass(**px))
+            DelPathUnicast(PathDataClass(**px))
+
+@app.get("/gobgp/flowspec/delallrib") # Deletes all the flowspec prefixes from GoBGP
+async def gobgp_flowspec_delallrib():
+    paths = ListPathFlowSpec()
+    if paths:
+        for px in paths:                                    
+            DelPathFlowSpec(px)
             
 
 ### GoBGP to/from Mongo API section ###
-@app.get("/gobgp/unicast/db2rib") # Puts all the prefixes from Mongo to GoBGP
-async def gobgp_db2rib():
-    async for px in app.unicast.find({}): 
-        px.pop("_id")       
-        AddPath(PathDataClass(**px))
-
-
-@app.get("/gobgp/unicast/rib2db") # Loads all the prefixes from GoBGP to Mongo
-async def gobgp_rib2db():    
-    paths = ListPath()
+@app.get("/gobgp/unicast/rib2db") # Loads all the unicast prefixes from GoBGP to Mongo
+async def gobgp_unicast_rib2db():    
+    paths = ListPathUnicast()
     if paths:
         await app.unicast.drop({})
         for path in paths:                        
             new_px = await app.unicast.insert_one(path)             
     return JSONResponse(status_code=status.HTTP_200_OK, content="OK")       
 
+@app.get("/gobgp/flowspec/rib2db") # Loads all the flowspec prefixes from GoBGP to Mongo
+async def gobgp_flowspec_rib2db():    
+    paths = ListPathFlowSpec()
+    if paths:
+        await app.flowspec.drop({})
+        for path in paths:                        
+            new_px = await app.flowspec.insert_one(jsonable_encoder(path))
+    return JSONResponse(status_code=status.HTTP_200_OK, content="OK")       
 
-@app.get("/gobgp/unicast/cleardb") # Loads all the prefixes from GoBGP to Mongo
-async def gobgp_cleardb():    
+
+@app.get("/gobgp/unicast/db2rib") # Puts all the unicast prefixes from Mongo to GoBGP
+async def gobgp_unicast_db2rib():
+    async for px in app.unicast.find({}): 
+        px.pop("_id")       
+        AddPathUnicast(PathDataClass(**px))
+
+@app.get("/gobgp/flowspec/db2rib") # Puts all the flowspec prefixes from Mongo to GoBGP
+async def gobgp_flowspec_db2rib():
+    async for px in app.flowspec.find({}): 
+        px.pop("_id")       
+        AddPathFlowSpec(FlowSpecDataClass(**px))
+
+
+@app.get("/gobgp/unicast/cleardb") # Drop the unicast Mongo table (collection)
+async def gobgp_unicast_cleardb():    
     await app.unicast.drop({})    
+    return JSONResponse(status_code=status.HTTP_200_OK, content="OK")    
+
+@app.get("/gobgp/flowspec/cleardb") # Drop the flowspec Mongo table (collection)
+async def gobgp_flowspec_cleardb():    
+    await app.flowspec.drop({})    
     return JSONResponse(status_code=status.HTTP_200_OK, content="OK")       

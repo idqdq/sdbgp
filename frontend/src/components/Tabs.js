@@ -20,7 +20,7 @@ const AppTabs = ({activeKey, onSelect}) => {
         <Tab eventKey="flowspec" title="BGP FlowSpec">
           <Container>
               <div>
-                <h4>BGP FlowSpec (to be implemented)</h4>
+                <h4>BGP FlowSpec</h4>
               </div>
           </Container>
         </Tab>

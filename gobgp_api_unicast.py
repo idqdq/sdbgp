@@ -15,7 +15,7 @@ ORIGIN_INCOMPLETE = 2
 IPv4_UNICAST=gobgp_pb2.Family(afi=gobgp_pb2.Family.AFI_IP, safi=gobgp_pb2.Family.SAFI_UNICAST)
 table_type=gobgp_pb2.GLOBAL
 
-def AddPath(px: PathDataClass):
+def AddPathUnicast(px: PathDataClass):
     channel = grpc.insecure_channel(GOBGP_CONN)
     stub = gobgp_pb2_grpc.GobgpApiStub(channel)
 
@@ -47,7 +47,7 @@ def AddPath(px: PathDataClass):
     )    
 
 
-def DelPath(px: PathDataClass):
+def DelPathUnicast(px: PathDataClass):
     channel = grpc.insecure_channel(GOBGP_CONN)
     stub = gobgp_pb2_grpc.GobgpApiStub(channel)
 
@@ -73,7 +73,7 @@ def DelPath(px: PathDataClass):
     )
 
 
-def ListPath() -> list:
+def ListPathUnicast() -> list:
     channel = grpc.insecure_channel(GOBGP_CONN)
     stub = gobgp_pb2_grpc.GobgpApiStub(channel)
 

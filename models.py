@@ -64,8 +64,8 @@ class PathDataClass(BaseModel):
 
 class FlowSpecAction(Enum):
     ACTION_DISCARD: int = 1
-    ACTION_RATE_LIMIT: int = 2
-    ACTION_ACCEPT: 3
+    ACTION_ACCEPT: int = 2
+    ACTION_RATE_LIMIT: int = 3
 
 class FlowSpecDataClass(BaseModel):
     src: str    
@@ -73,7 +73,7 @@ class FlowSpecDataClass(BaseModel):
     src_ports: Optional[str] = ''
     dst_ports: Optional[str] = ''    
     protocols: Optional[str] = ''
-    action: FlowSpecAction = FlowSpecAction.ACTION_DISCARD
+    action: int = 1 #FlowSpecAction = FlowSpecAction.ACTION_DISCARD
     rate_limit: int = 0
 
     class Config:
@@ -98,4 +98,4 @@ class FlowSpecGoBGPDataClass(BaseModel):
     src_ports: Optional[str] = ''
     dst_ports: Optional[str] = ''
     protocols: Optional[List[str]] = []
-    rate_limit: Union[None, int] = 0
+    rate_limit: Union[None, int] = None
