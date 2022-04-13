@@ -21,6 +21,7 @@ Session.vim
 __pycache__/
 *.py[cod]
 *$py.class
+config.py
 
 venv/
 **/venv/

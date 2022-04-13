@@ -6,6 +6,7 @@ from typing import List
 from gobgp_api_flowspec import AddPathFlowSpec, DelPathFlowSpec, ListPathFlowSpec
 from gobgp_api_unicast import AddPathUnicast, DelPathUnicast, ListPathUnicast
 from models import PathDataClass, FlowSpecDataClass
+from config import Settings
 
 app = FastAPI()
 
@@ -30,6 +31,7 @@ async def shutdown_db_client():
 ## mongo end
 
 ## CORS
+"""
 origins = [
     "http://127.0.0.1",
     "http://127.0.0.1:3000",
@@ -44,6 +46,19 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+"""
+settings = Settings()
+
+if settings.BACKEND_CORS_ORIGINS:
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=[str(origin) for origin in settings.BACKEND_CORS_ORIGINS],
+        #allow_origin_regex=settings.BACKEND_CORS_ORIGIN_REGEX,
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+
 ## CORS end
 
 ## FastAPI Routes

@@ -1,0 +1,17 @@
+# this should be renamed to config.py 
+# change settings to match the real environment
+
+from typing import List
+from pydantic import BaseSettings, AnyHttpUrl
+
+class Settings(BaseSettings):  
+    JWT_SECRET: str = "TEST_SECRET_DO_NOT_USE_IT_IN_PROD"
+    ALGORITHM: str = "HS256"
+    # 60 minutes * 24 hours * 8 days = 8 days
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 8
+
+    BACKEND_CORS_ORIGINS: List[AnyHttpUrl] = [
+        "http://localhost:3000",
+        "http://10.1.2.3:3000",  # type: ignore
+        "https://blabla.acme.xz:3031"
+    ]

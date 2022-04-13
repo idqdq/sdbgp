@@ -1,4 +1,5 @@
 import React, { Component } from 'react'
+import config from './config'
 import Table from './components/Table'
 import { FormModal, FormBulkModal, SpinerModal } from './components/Modal';
 import AppTabs from './components/Tabs';
@@ -6,12 +7,12 @@ import AppTabs from './components/Tabs';
 const DEBUG = false;
 
 const URL_MONGO_API = {
-    unicast: "http://127.0.0.1:8000/mongo/unicast", 
-    flowspec: "http://127.0.0.1:8000/mongo/flowspec",
+    unicast: `${config.apiBasePath}/mongo/unicast`, 
+    flowspec: `${config.apiBasePath}/mongo/flowspec`,
 };
 const URL_GORIB_API = {
-    unicast: "http://127.0.0.1:8000/gobgp/unicast",
-    flowspec: "http://127.0.0.1:8000/gobgp/flowspec",
+    unicast: `${config.apiBasePath}/gobgp/unicast`,
+    flowspec: `${config.apiBasePath}/gobgp/flowspec`,
 }
 
 class App extends Component {
