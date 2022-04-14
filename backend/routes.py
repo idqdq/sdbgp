@@ -1,74 +1,107 @@
+from motor.motor_asyncio import AsyncIOMotorClient
 from fastapi import FastAPI, Response, Body, status, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse
-from typing import List
+from typing import List, Optional
+from jose import JWTError, jwt
+from passlib.context import CryptContext
+from datetime import datetime, timedelta
 from gobgp_api_flowspec import AddPathFlowSpec, DelPathFlowSpec, ListPathFlowSpec
 from gobgp_api_unicast import AddPathUnicast, DelPathUnicast, ListPathUnicast
-from models import PathDataClass, FlowSpecDataClass
+from models import PathDataClass, FlowSpecDataClass, User
 from config import Settings
 
 app = FastAPI()
+settings = Settings()
 
 ## mongo start
-# first we'll be using fake data thus we could develop the frontend part of app without access to the real switchfabric
-# to store and retrieve such date mongodb is being used
-import motor.motor_asyncio
-
 @app.on_event("startup")
 async def create_db_client():
-    mdbclient = motor.motor_asyncio.AsyncIOMotorClient()
-    app.db = mdbclient.sdbgp
-    app.unicast = app.db.unicast
-    app.flowspec = app.db.flowspec
+    app.mdbclient = AsyncIOMotorClient()
+    app.db = app.mdbclient.sdbgp    
 
 @app.on_event("shutdown")
 async def shutdown_db_client():
-    # stop your client here
-    #app.db.logout()
+    # stop your client here    
+    # app.mbclient.close()
     pass
-
 ## mongo end
 
+
 ## CORS
-"""
-origins = [
-    "http://127.0.0.1",
-    "http://127.0.0.1:3000",
-    "http://localhost",
-    "http://localhost:3000",    
-]
-
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=origins,
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
-"""
-settings = Settings()
-
 if settings.BACKEND_CORS_ORIGINS:
     app.add_middleware(
         CORSMiddleware,
-        allow_origins=[str(origin) for origin in settings.BACKEND_CORS_ORIGINS],
-        #allow_origin_regex=settings.BACKEND_CORS_ORIGIN_REGEX,
+        allow_origins=[str(origin) for origin in settings.BACKEND_CORS_ORIGINS],        
         allow_credentials=True,
         allow_methods=["*"],
         allow_headers=["*"],
-    )
+    )    
 
 ## CORS end
 
 ## FastAPI Routes
-### MongoDB API Section ###
+### JWT ###
+PWD_CONTEXT = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
+def verify_password(plain_password: str, hashed_password: str) -> bool:
+    return PWD_CONTEXT.verify(plain_password, hashed_password)
+
+
+def get_password_hash(password: str) -> str:
+    return PWD_CONTEXT.hash(password)
+
+
+async def authenticate(user: str, password: str) -> Optional[User]:
+    if (obj_user := await app.db.user.find_one({"user": user})) is not None:       
+        if not verify_password(password, obj_user["hashpasswd"]):  
+            return None
+    return obj_user
+
+async def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
+    to_encode = dict(user=data["user"],hashpasswd=data["hashpasswd"])
+
+    if expires_delta:
+        expire = datetime.utcnow() + expires_delta
+    else:
+        expire = datetime.utcnow() + timedelta(minutes=15)
+    to_encode.update({"exp": expire})
+    encoded_jwt = jwt.encode(to_encode, settings.JWT_SECRET, algorithm=settings.ALGORITHM)
+    return encoded_jwt
+
+
+# takes a data object and returns a JWT token 
+@app.post("/login")
+async def gettoken(data: User):            
+    user = await authenticate(user=data.user, password=data.password)
+    if not user:
+        raise HTTPException(status_code=400, detail="Incorrect username or password")  # 3
+    
+    access_token_expires = timedelta(days=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token = await create_access_token(data=user, expires_delta=access_token_expires)
+    return {"access_token": access_token, "token_type": "bearer"}
+
+@app.post("/signin")
+async def signin(data: User):    
+    newuser = dict(user=data.user, 
+            hashpasswd=get_password_hash(data.password), 
+            created=datetime.utcnow(),
+            is_superuser=data.is_superuser
+            )
+    await app.db.user.insert_one(newuser)
+    if await app.db.user.find_one({"user":newuser["user"]}) is not None:
+        return {"message": "user created"}
+    
+    raise HTTPException(status_code=404, detail=f"DB error ")
+        
+
+### MongoDB API Section ###
 @app.get("/mongo/unicast", response_model=List[PathDataClass])
 async def getPxAll():
     prefixes = []
         
-    async for px in app.unicast.find({}):
+    async for px in app.db.unicast.find({}):
         px.pop("_id")        
         prefixes.append(PathDataClass(**px))
     
@@ -78,23 +111,23 @@ async def getPxAll():
 async def getFlowspecAll():
     prefixes = []
         
-    async for px in app.flowspec.find({}):
+    async for px in app.db.flowspec.find({}):
         px.pop("_id")        
         prefixes.append(FlowSpecDataClass(**px))
     
-    return prefixes
+    return prefixes  
 
 
 @app.get("/mongo/unicast/{src}", response_model=PathDataClass)  
 async def getPx(src: str):
-    if (px := await app.unicast.find_one({"src": src})) is not None:
+    if (px := await app.db.unicast.find_one({"src": src})) is not None:
         px.pop("_id")
         return PathDataClass(**px)
     raise HTTPException(status_code=404, detail=f"Prefix with ID: {src} not found")
 
 @app.get("/mongo/flowspec/{src:path}", response_model=FlowSpecDataClass)  
 async def getFlowspec(src: str):
-    if (px := await app.flowspec.find_one({"src": src})) is not None:
+    if (px := await app.db.flowspec.find_one({"src": src})) is not None:
         px.pop("_id")
         return FlowSpecDataClass(**px)
     raise HTTPException(status_code=404, detail=f"Policy with ID: {src} not found")
@@ -102,12 +135,12 @@ async def getFlowspec(src: str):
 
 @app.post("/mongo/unicast")
 async def createPx(px: PathDataClass = Body(...)):        
-    await app.unicast.insert_one(jsonable_encoder(px))
+    await app.db.unicast.insert_one(jsonable_encoder(px))
     return JSONResponse(status_code=status.HTTP_201_CREATED)
 
 @app.post("/mongo/flowspec")
 async def createFlowspec(px: FlowSpecDataClass = Body(...)):       
-    await app.flowspec.insert_one(jsonable_encoder(px))    
+    await app.db.flowspec.insert_one(jsonable_encoder(px))    
     return JSONResponse(status_code=status.HTTP_201_CREATED)
 
 
@@ -116,7 +149,7 @@ async def createBulkPx(pxlist: List[PathDataClass]):
     pxlist = jsonable_encoder(pxlist)    
     
     for px in pxlist:
-        new_px = await app.unicast.insert_one(px)      
+        new_px = await app.db.unicast.insert_one(px)      
 
     return JSONResponse(status_code=status.HTTP_201_CREATED, content="Ok")
 
@@ -124,10 +157,10 @@ async def createBulkPx(pxlist: List[PathDataClass]):
 async def updatePx(src: str, px: PathDataClass = Body(...)):
     px = jsonable_encoder(px)
     
-    if (existed_px := await app.unicast.find_one({"src": src})) is not None:        
-        update_res = await app.unicast.update_one({"_id": existed_px["_id"] }, {"$set": px})
+    if (existed_px := await app.db.unicast.find_one({"src": src})) is not None:        
+        update_res = await app.db.unicast.update_one({"_id": existed_px["_id"] }, {"$set": px})
         if update_res.modified_count == 1:
-            result = await app.unicast.find_one({"src": src})
+            result = await app.db.unicast.find_one({"src": src})
         else: 
             result = existed_px
         result.pop("_id")
@@ -140,10 +173,10 @@ async def updatePx(src: str, px: PathDataClass = Body(...)):
 async def updateFlowspec(src: str, px: FlowSpecDataClass = Body(...)):
     px = jsonable_encoder(px)    
 
-    if (existed_px := await app.flowspec.find_one({"src": src})) is not None:        
-        update_res = await app.flowspec.update_one({"_id": existed_px["_id"] }, {"$set": px})
+    if (existed_px := await app.db.flowspec.find_one({"src": src})) is not None:        
+        update_res = await app.db.flowspec.update_one({"_id": existed_px["_id"] }, {"$set": px})
         if update_res.modified_count == 1:
-            result = await app.flowspec.find_one({"src": src})
+            result = await app.db.flowspec.find_one({"src": src})
         else: 
             result = existed_px
         result.pop("_id")
@@ -155,7 +188,7 @@ async def updateFlowspec(src: str, px: FlowSpecDataClass = Body(...)):
 
 @app.delete("/mongo/unicast/{src}", response_description="Delete Prefix")
 async def deletePx(src: str):
-    delete_res = await app.unicast.delete_one({"src": src})
+    delete_res = await app.db.unicast.delete_one({"src": src})
     if delete_res.deleted_count == 1:
         return Response(status_code=status.HTTP_204_NO_CONTENT)
 
@@ -163,7 +196,7 @@ async def deletePx(src: str):
 
 @app.delete("/mongo/flowspec/{src:path}", response_description="Delete flowspec policy")
 async def deleteFlowspec(src: str):
-    delete_res = await app.flowspec.delete_one({"src": src})
+    delete_res = await app.db.flowspec.delete_one({"src": src})
     if delete_res.deleted_count == 1:
         return Response(status_code=status.HTTP_204_NO_CONTENT)
 
@@ -220,40 +253,40 @@ async def gobgp_flowspec_delallrib():
 async def gobgp_unicast_rib2db():    
     paths = ListPathUnicast()
     if paths:
-        await app.unicast.drop({})
+        await app.db.unicast.drop({})
         for path in paths:                        
-            new_px = await app.unicast.insert_one(path)             
+            new_px = await app.db.unicast.insert_one(path)             
     return JSONResponse(status_code=status.HTTP_200_OK, content="OK")       
 
 @app.get("/gobgp/flowspec/rib2db") # Loads all the flowspec prefixes from GoBGP to Mongo
 async def gobgp_flowspec_rib2db():    
     paths = ListPathFlowSpec()
     if paths:
-        await app.flowspec.drop({})
+        await app.db.flowspec.drop({})
         for path in paths:                        
-            new_px = await app.flowspec.insert_one(jsonable_encoder(path))
+            new_px = await app.db.flowspec.insert_one(jsonable_encoder(path))
     return JSONResponse(status_code=status.HTTP_200_OK, content="OK")       
 
 
 @app.get("/gobgp/unicast/db2rib") # Puts all the unicast prefixes from Mongo to GoBGP
 async def gobgp_unicast_db2rib():
-    async for px in app.unicast.find({}): 
+    async for px in app.db.unicast.find({}): 
         px.pop("_id")       
         AddPathUnicast(PathDataClass(**px))
 
 @app.get("/gobgp/flowspec/db2rib") # Puts all the flowspec prefixes from Mongo to GoBGP
 async def gobgp_flowspec_db2rib():
-    async for px in app.flowspec.find({}): 
+    async for px in app.db.flowspec.find({}): 
         px.pop("_id")       
         AddPathFlowSpec(FlowSpecDataClass(**px))
 
 
 @app.get("/gobgp/unicast/cleardb") # Drop the unicast Mongo table (collection)
 async def gobgp_unicast_cleardb():    
-    await app.unicast.drop({})    
+    await app.db.unicast.drop({})    
     return JSONResponse(status_code=status.HTTP_200_OK, content="OK")    
 
 @app.get("/gobgp/flowspec/cleardb") # Drop the flowspec Mongo table (collection)
 async def gobgp_flowspec_cleardb():    
-    await app.flowspec.drop({})    
+    await app.db.flowspec.drop({})    
     return JSONResponse(status_code=status.HTTP_200_OK, content="OK")       

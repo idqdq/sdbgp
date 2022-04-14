@@ -47,6 +47,12 @@ class PxDataClass(BaseModel):
         return v
 
 
+class User(BaseModel):
+    user: str
+    password: str
+    is_superuser: bool = False
+
+
 class PathDataClass(BaseModel):
     src: str
     prefix_len: int = Field(32, ge=16, le=32)

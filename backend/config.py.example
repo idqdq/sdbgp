@@ -3,6 +3,7 @@
 
 from typing import List
 from pydantic import BaseSettings, AnyHttpUrl
+from os import environ
 
 class Settings(BaseSettings):  
     JWT_SECRET: str = "TEST_SECRET_DO_NOT_USE_IT_IN_PROD"
@@ -12,6 +13,6 @@ class Settings(BaseSettings):
 
     BACKEND_CORS_ORIGINS: List[AnyHttpUrl] = [
         "http://localhost:3000",
-        "http://10.1.2.3:3000",  # type: ignore
-        "https://blabla.acme.xz:3031"
+        "http://10.1.2.3:3000",
+        environ.get('CORS_ORIGIN', 'http://localhost:3001')
     ]
