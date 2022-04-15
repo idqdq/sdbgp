@@ -1,6 +1,7 @@
 # this should be renamed to config.py 
 # change settings to match the real environment
 
+
 from typing import List
 from pydantic import BaseSettings, AnyHttpUrl
 from os import environ
@@ -11,8 +12,16 @@ class Settings(BaseSettings):
     # 60 minutes * 24 hours * 8 days = 8 days
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 8
 
+    # in case mongodb is on a different host or a container
+    MONGO_HOST: str = environ.get('MONGO_HOST', 'localhost')
+    MONGO_PORT: str = environ.get('MONGO_PORT', '27017')
+
+    # in case gobgpd is on a different host or a container
+    GOBGP_HOST: str = environ.get('GOBGP_HOST', '127.0.0.1')
+    GOBGP_PORT: str = environ.get('GOBGP_PORT', '50051')
+    
+    # frontend URL (origin)
     BACKEND_CORS_ORIGINS: List[AnyHttpUrl] = [
-        "http://localhost:3000",
-        "http://10.1.2.3:3000",
+        "http://localhost:3000",  
         environ.get('CORS_ORIGIN', 'http://localhost:3001')
     ]

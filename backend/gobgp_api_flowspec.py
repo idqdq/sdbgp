@@ -4,8 +4,14 @@ from typing import List
 from models import FlowSpecDataClass, FlowSpecGoBGPDataClass
 from grpclib.flowspec_composer import FlowSpecComposer
 from grpclib.flowspec_decomposer import FlowSpecDecomposer
+from config import Settings
 
-GOBGP_CONN = '127.0.0.1:50051'
+settings = Settings()
+
+GOBGP_HOST = settings.GOBGP_HOST
+GOBGP_PORT = settings.GOBGP_PORT
+GOBGP_CONN = f"{GOBGP_HOST}:{GOBGP_PORT}"
+
 TIMEOUT_SECONDS = 1000
 IPv4_FLOWSPEC=gobgp_pb2.Family(afi=gobgp_pb2.Family.AFI_IP, safi=gobgp_pb2.Family.SAFI_FLOW_SPEC_UNICAST)
 table_type=gobgp_pb2.GLOBAL

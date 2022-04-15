@@ -1,14 +1,16 @@
-from __future__ import absolute_import
-from __future__ import print_function
-
 import grpc
 from google.protobuf.any_pb2 import Any
-
 from grpclib import gobgp_pb2, gobgp_pb2_grpc, attribute_pb2
 from models import PathDataClass
+from config import Settings
 
+settings = Settings()
 
-GOBGP_CONN = '127.0.0.1:50051'
+#GOBGP_CONN = '127.0.0.1:50051'
+GOBGP_HOST = settings.GOBGP_HOST
+GOBGP_PORT = settings.GOBGP_PORT
+GOBGP_CONN = f"{GOBGP_HOST}:{GOBGP_PORT}"
+
 TIMEOUT_SECONDS = 10
 ORIGIN_INCOMPLETE = 2
 

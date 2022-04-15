@@ -2,14 +2,13 @@ version: '3'
 
 services:
   db:
-    image: mongodb
-    env_file:
-      - .env
-  web_app:
+    image: mongo
+    hostname: mongo
+  app:
     build:
+      context: ./
       dockerfile: Dockerfile
-      context: .
-    image: backend
+    container_name: sdbgp_app
     env_file:
       - .env
     depends_on:
@@ -18,5 +17,8 @@ services:
       - "8001:8001"
   gobgp:
     image: jauderho/gobgp:v2.34.0
+    hostname: gobgp
+    volumes:
+      - ./gobgp:/config
     ports:
       - "179:179"

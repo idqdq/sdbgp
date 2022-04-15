@@ -122,6 +122,11 @@ assigned IP addresses depend on the order in which the container connects to the
 bgp configurations depend on these IP addresses  
 to find out the IP addresses, use *docker inspect* command, and in case the addresses differ, edit the bgp configurations.  
 
+**Note2**
+if you wish your gobgp daemon to speak with the real BGP routers you should expose the container's tcp port 179  
+> >\docker run -dit --rm -v $(pwd):/config --name gobgp_host -p179:179 -p50051:50051 jauderho/gobgp:v2.34.0
+
+
 ## Running the App
 
 The APP has front and back parts that shoud be running independently  

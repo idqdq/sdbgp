@@ -18,7 +18,7 @@ settings = Settings()
 ## mongo start
 @app.on_event("startup")
 async def create_db_client():
-    app.mdbclient = AsyncIOMotorClient()
+    app.mdbclient = AsyncIOMotorClient(f"mongodb://{settings.MONGO_HOST}:{settings.MONGO_PORT}")    
     app.db = app.mdbclient.sdbgp    
 
 @app.on_event("shutdown")

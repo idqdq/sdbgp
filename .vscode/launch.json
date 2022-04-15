@@ -12,6 +12,7 @@
             "args": [
                 "routes:app"
             ],
+            "cwd":"backend/",
             "jinja": true,
             "justMyCode": true
         },
