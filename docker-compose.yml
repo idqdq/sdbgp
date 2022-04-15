@@ -1,0 +1,22 @@
+version: '3'
+
+services:
+  db:
+    image: mongodb
+    env_file:
+      - .env
+  web_app:
+    build:
+      dockerfile: Dockerfile
+      context: .
+    image: backend
+    env_file:
+      - .env
+    depends_on:
+      - db
+    ports:
+      - "8001:8001"
+  gobgp:
+    image: jauderho/gobgp:v2.34.0
+    ports:
+      - "179:179"
