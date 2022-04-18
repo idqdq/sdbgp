@@ -7,7 +7,7 @@ services:
   app:
     build:
       context: ./
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.back
     container_name: sdbgp_app
     env_file:
       - .env
@@ -22,3 +22,13 @@ services:
       - ./gobgp:/config
     ports:
       - "179:179"
+  frontend:
+    build:
+      context: ./
+      dockerfile: Dockerfile.front
+      env_file:
+      - .env
+      depends_on:
+      - app
+      ports:
+      - "8888:8888"
