@@ -26,9 +26,11 @@ services:
     build:
       context: ./
       dockerfile: Dockerfile.front
-      env_file:
+      args:
+        - REACT_APP_API_BASE_PATH=${REACT_APP_API_BASE_PATH}
+    env_file:
       - .env
-      depends_on:
+    depends_on:
       - app
-      ports:
-      - "8888:8888"
+    ports:
+      - "8888:80"
