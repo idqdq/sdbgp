@@ -18,7 +18,7 @@ then we'll install two docker images:
 
 first create and run the frr container:  
 ```bash
-  > $ run -dit --name frr1 --hostname frr1 --privileged --net net2 frrouting/frr
+  > $ docker run -dit --name frr1 --hostname frr1 --privileged --net net2 frrouting/frr
 ```
 now dive in the container and configure it from within:  
 ```

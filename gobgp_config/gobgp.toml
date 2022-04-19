@@ -1,0 +1,43 @@
+[global.config]
+  as = 65100
+  router-id = "1.1.1.1"
+
+[[neighbors]]
+  [neighbors.config]
+    neighbor-address = "10.2.0.123"
+    peer-as = 65100
+  [[neighbors.afi-safis]]
+    [neighbors.afi-safis.config]
+      afi-safi-name = "ipv4-flowspec"
+  [[neighbors.afi-safis]]
+    [neighbors.afi-safis.config]
+      afi-safi-name = "ipv4-unicast"
+
+[[defined-sets.prefix-sets]]
+  prefix-set-name = "px-all"
+  [[defined-sets.prefix-sets.prefix-list]]
+    ip-prefix = "0.0.0.0/0"
+    masklength-range = "1..32"
+
+[[defined-sets.neighbor-sets]]
+  neighbor-set-name = "ext-neigh"
+  neighbor-info-list = ["10.0.0.0/8"]
+
+[[policy-definitions]]
+  name = "policy-reject-all-from-ext-neigh"
+  [[policy-definitions.statements]]
+    name = "statement1"
+    [policy-definitions.statements.conditions.match-prefix-set]
+      prefix-set = "px-all"
+      match-set-options = "any"
+    [policy-definitions.statements.conditions.match-neighbor-set]
+      neighbor-set = "ext-neigh"
+      match-set-options = "any"
+    [policy-definitions.statements.actions]
+      route-disposition = "reject-route"
+
+[global.apply-policy.config]
+import-policy-list = ["policy-reject-all-from-ext-neigh"]
+default-import-policy = "accept-route"
+default-export-policy = "accept-route"
+

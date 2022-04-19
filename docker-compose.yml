@@ -19,7 +19,7 @@ services:
     image: jauderho/gobgp:v2.34.0
     hostname: gobgp
     volumes:
-      - ./gobgp:/config
+      - ./gobgp_config:/config
     ports:
       - "179:179"
   frontend:
