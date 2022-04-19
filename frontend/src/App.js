@@ -434,7 +434,7 @@ class App extends Component {
                                 value={search || ''}
                                 onChange={this.handleSearchChange}
                                 style={searchStyle} 
-                                disabled={ Data.length > 5000 }/>
+                                disabled={ Data.length > config.serchFieldLimit }/>
                             <label htmlFor="search" style={searchStyle}>Prefix search</label>
                         </div>
                     </div>
