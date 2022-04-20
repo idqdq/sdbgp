@@ -23,7 +23,10 @@ make a little preconfiguration by copying the backend's configuration file confi
 
 ## three
 
-just run docker compose by typing 
+edit the **REACT_APP_API_BASE_PATH** variable within the .env file.  
+It should be the server name you are deploying the app on
+
+and run docker compose by typing 
 > \> docker-compose up
 
 and that's it  
