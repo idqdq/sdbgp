@@ -1,16 +1,16 @@
 from motor.motor_asyncio import AsyncIOMotorClient
-from fastapi import FastAPI, Response, Body, status, HTTPException
+from fastapi import FastAPI, Response, Request, Depends, Body, status, HTTPException
+from fastapi.security import OAuth2PasswordRequestForm
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.encoders import jsonable_encoder
 from fastapi.responses import JSONResponse
-from typing import List, Optional
-from jose import JWTError, jwt
-from passlib.context import CryptContext
+from typing import List
 from datetime import datetime, timedelta
 from gobgp_api_flowspec import AddPathFlowSpec, DelPathFlowSpec, ListPathFlowSpec
 from gobgp_api_unicast import AddPathUnicast, DelPathUnicast, ListPathUnicast
-from models import PathDataClass, FlowSpecDataClass, User
+from models import PathDataClass, FlowSpecDataClass, UserBase, UserIn, UserInDB
 from config import Settings
+from auth import authenticate, create_access_token, get_current_user, get_password_hash
 
 app = FastAPI()
 settings = Settings()
@@ -42,40 +42,13 @@ if settings.BACKEND_CORS_ORIGINS:
 print(settings)
 ## CORS end
 
+
 ## FastAPI Routes
-### JWT ###
-PWD_CONTEXT = CryptContext(schemes=["bcrypt"], deprecated="auto")
-
-def verify_password(plain_password: str, hashed_password: str) -> bool:
-    return PWD_CONTEXT.verify(plain_password, hashed_password)
-
-
-def get_password_hash(password: str) -> str:
-    return PWD_CONTEXT.hash(password)
-
-
-async def authenticate(user: str, password: str) -> Optional[User]:
-    if (obj_user := await app.db.user.find_one({"user": user})) is not None:       
-        if not verify_password(password, obj_user["hashpasswd"]):  
-            return None
-    return obj_user
-
-async def create_access_token(data: dict, expires_delta: Optional[timedelta] = None):
-    to_encode = dict(user=data["user"],hashpasswd=data["hashpasswd"])
-
-    if expires_delta:
-        expire = datetime.utcnow() + expires_delta
-    else:
-        expire = datetime.utcnow() + timedelta(minutes=15)
-    to_encode.update({"exp": expire})
-    encoded_jwt = jwt.encode(to_encode, settings.JWT_SECRET, algorithm=settings.ALGORITHM)
-    return encoded_jwt
-
-
+### Auth Section
 # takes a data object and returns a JWT token 
-@app.post("/login")
-async def gettoken(data: User):            
-    user = await authenticate(user=data.user, password=data.password)
+@app.post("/token")
+async def gettoken(request: Request, form_data: OAuth2PasswordRequestForm = Depends()):            
+    user = await authenticate(request, user=form_data.username, password=form_data.password)
     if not user:
         raise HTTPException(status_code=400, detail="Incorrect username or password")  # 3
     
@@ -83,19 +56,29 @@ async def gettoken(data: User):
     access_token = await create_access_token(data=user, expires_delta=access_token_expires)
     return {"access_token": access_token, "token_type": "bearer"}
 
+
 @app.post("/signin")
-async def signin(data: User):    
-    newuser = dict(user=data.user, 
-            hashpasswd=get_password_hash(data.password), 
+async def signin(data: UserIn):      
+    if await app.db.user.find_one({"user":data.user}) is not None:
+        raise HTTPException(status_code=400,
+                            detail="The user {data.user} already exists in the system",)
+
+    newuser = UserInDB(user=data.user, 
+            hashed_password=get_password_hash(data.password), 
             created=datetime.utcnow(),
-            is_superuser=data.is_superuser
-            )
-    await app.db.user.insert_one(newuser)
-    if await app.db.user.find_one({"user":newuser["user"]}) is not None:
+            is_superuser=data.is_superuser)
+
+    await app.db.user.insert_one(jsonable_encoder(newuser))
+    if await app.db.user.find_one({"user":newuser.user}) is not None:
         return {"message": "user created"}
     
-    raise HTTPException(status_code=404, detail=f"DB error ")
-        
+    raise HTTPException(status_code=404, detail=f"can't create user {data.user}. probably due to DB error")
+
+
+@app.get("/me", response_model=UserBase)
+async def read_users_me(current_user: UserBase = Depends(get_current_user)):
+    return current_user
+
 
 ### MongoDB API Section ###
 @app.get("/mongo/unicast", response_model=List[PathDataClass])

@@ -2,6 +2,7 @@
 from typing import Optional, List, Union
 from enum import Enum
 from pydantic import BaseModel, Field, validator
+from datetime import datetime
 from bson import ObjectId
 from ipaddress import IPv4Address
 
@@ -47,10 +48,17 @@ class PxDataClass(BaseModel):
         return v
 
 
-class User(BaseModel):
+
+class UserBase(BaseModel):    
     user: str
-    password: str
     is_superuser: bool = False
+
+class UserIn(UserBase):
+    password: str
+
+class UserInDB(UserBase):
+    hashed_password: str
+    created: datetime
 
 
 class PathDataClass(BaseModel):
