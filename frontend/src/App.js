@@ -16,15 +16,23 @@ class App extends Component {
     }
 
     setToken = (token) => {
-        sessionStorage.setItem('token', token)
-        this.forceUpdate(); // rerender component after successfull login
+        if (token) {
+            localStorage.setItem('token', token)
+            this.forceUpdate(); // rerender component after successfull login
+        }
     }
 
     getToken = () => {
-        const tokenString = sessionStorage.getItem('token');
-        const token = JSON.parse(tokenString);
-        return token?.access_token;        
+        const tokenString = localStorage.getItem('token');
+        if (tokenString) {            
+            const token = JSON.parse(tokenString);
+            return token?.access_token;
+        }
     }
+
+    removeToken = () => {
+        localStorage.removeItem('token');        
+    };
 
     render() {
         

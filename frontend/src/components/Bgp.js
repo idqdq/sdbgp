@@ -17,8 +17,7 @@ const URL_GORIB_API = {
 class Bgp extends Component {
 
     constructor(props) {
-        super(props);
-        console.log(this.props);
+        super(props);        
         this.state = { 
             Tab: this.props.Tab,           
             Data: [],
@@ -40,7 +39,7 @@ class Bgp extends Component {
         this.hideSpinner();
     }
 
-    async componentWillReceiveProps(nextProps) {       
+    async UNSAFE_componentWillReceiveProps(nextProps) {       
         if (nextProps.Tab !== this.props.Tab) {           
             await this._loaddata(nextProps.Tab);
         }

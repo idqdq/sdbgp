@@ -50,7 +50,7 @@ print(settings)
 async def gettoken(request: Request, form_data: OAuth2PasswordRequestForm = Depends()):            
     user = await authenticate(request, user=form_data.username, password=form_data.password)
     if not user:
-        raise HTTPException(status_code=400, detail="Incorrect username or password")  # 3
+        raise HTTPException(status_code=401, detail="Incorrect username or password")  # 3
     
     access_token_expires = timedelta(days=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
     access_token = await create_access_token(data=user, expires_delta=access_token_expires)

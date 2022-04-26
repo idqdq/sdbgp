@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Modal } from "react-bootstrap";
 import PropTypes from 'prop-types';
 import config from '../config'
 
@@ -16,9 +17,9 @@ const _authUser = async (username, password) => {
             })
         });
 
-        if (!res.ok) {
-            const message = `An error has occured: ${res.status} - ${res.statusText}`;
-  
+        if (!res.ok) {            
+            const data = await res.json();
+            const message = `An error has occured: ${res.status} - ${data.detail}`;            
             throw new Error(message);
         }
 
@@ -32,42 +33,61 @@ const _authUser = async (username, password) => {
 
 
 export default function Login({ setToken }) {
-    const login_wrapper = {
-        display: 'flex',
-        flexDirection: 'column',
-        alignItems: 'center',
-    }
+
     const [username, setUserName] = useState();
     const [password, setPassword] = useState();
 
     const handleSubmit = async e => {
-        e.preventDefault();
-        console.log(username, password);
+        e.preventDefault();        
         const token = await _authUser(username, password);
-
-        setToken(token);
+        if (token)
+            setToken(token);
     }
 
     return (
-        <div style={login_wrapper}>
-            <h1>Please Log In</h1>
-            <form onSubmit={handleSubmit}>
-                <label>
-                    <p>Username</p>
-                    <input type="text" onChange={e => setUserName(e.target.value)} />
-                </label>
-                <label>
-                    <p>Password</p>
-                    <input type="password" onChange={e => setPassword(e.target.value)} />
-                </label>
-                <div>
-                    <button type="submit">Submit</button>
-                </div>
-            </form>
-        </div>
+        <Modal show={true} fullscreen={true} >
+            <Modal.Header>
+                <Modal.Title>Please Login</Modal.Title>
+            </Modal.Header>
+            <Modal.Body>
+                <form>
+                    <div className="mb-3 row">
+                        <label htmlFor="login" className="col-sm-2 col-form-label">login</label>
+                        <div className="col-sm-10">
+                            <input
+                                className="form-control"
+                                name="login"
+                                type="text"
+                                id="login_id"
+                                value={username || ''}
+                                onChange={e => setUserName(e.target.value)}
+                            />
+                        </div>
+                    </div>
+                    <div className="mb-3 row">
+                        <label htmlFor="password" className="col-sm-2 col-form-label">password</label>
+                        <div className="col-sm-10">
+                            <input
+                                className="form-control"
+                                type="password"
+                                name="password"
+                                value={password || ''}
+                                onChange={e => setPassword(e.target.value)}
+                            />
+                        </div>
+                    </div>
+                    <input type="button" value="Submit" onClick={handleSubmit} className="btn btn-outline-success" />
+                </form>
+            </Modal.Body>
+        </Modal>
     )
 }
+
 
 Login.propTypes = {
     setToken: PropTypes.func.isRequired
 }
+
+
+// atob(JSON.parse(token).access_token.split('.')[1])
+// "{\"user\":\"admin\",\"hashed_password\":\"$2b$12$8itwNGU28V61bDfTZh.sMuAuuytM1kjcJQvnZzfsPDlsWuuzVh9jS\",\"exp\":2646305786}"
