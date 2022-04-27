@@ -50,10 +50,11 @@ print(settings)
 async def gettoken(request: Request, form_data: OAuth2PasswordRequestForm = Depends()):            
     user = await authenticate(request, user=form_data.username, password=form_data.password)
     if not user:
-        raise HTTPException(status_code=401, detail="Incorrect username or password")  # 3
+        raise HTTPException(status_code=401, detail="Incorrect username or password")
     
-    access_token_expires = timedelta(days=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
-    access_token = await create_access_token(data=user, expires_delta=access_token_expires)
+    access_token_expires = timedelta(minutes=settings.ACCESS_TOKEN_EXPIRE_MINUTES)
+    access_token = await create_access_token(sub=user["user"], expires_delta=access_token_expires)
+
     return {"access_token": access_token, "token_type": "bearer"}
 
 
@@ -82,7 +83,7 @@ async def read_users_me(current_user: UserBase = Depends(get_current_user)):
 
 ### MongoDB API Section ###
 @app.get("/mongo/unicast", response_model=List[PathDataClass])
-async def getPxAll():
+async def getPxAll(current_user: UserBase = Depends(get_current_user)):
     prefixes = []
         
     async for px in app.db.unicast.find({}):
@@ -92,7 +93,7 @@ async def getPxAll():
     return prefixes
 
 @app.get("/mongo/flowspec", response_model=List[FlowSpecDataClass])
-async def getFlowspecAll():
+async def getFlowspecAll(current_user: UserBase = Depends(get_current_user)):
     prefixes = []
         
     async for px in app.db.flowspec.find({}):

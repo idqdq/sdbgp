@@ -88,6 +88,6 @@ Login.propTypes = {
     setToken: PropTypes.func.isRequired
 }
 
-
-// atob(JSON.parse(token).access_token.split('.')[1])
-// "{\"user\":\"admin\",\"hashed_password\":\"$2b$12$8itwNGU28V61bDfTZh.sMuAuuytM1kjcJQvnZzfsPDlsWuuzVh9jS\",\"exp\":2646305786}"
+//const tokenString = localStorage.getItem('token');
+//atob(JSON.parse(tokenString).access_token.split('.')[1])
+//{\"type\":\"access_token\",\"exp\":1651761461,\"iat\":1651070261,\"sub\":\"admin\"}

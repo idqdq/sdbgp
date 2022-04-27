@@ -31,9 +31,23 @@ class Bgp extends Component {
         }
     }
 
+
+    _auth_header = () => {
+        const tokenString = localStorage.getItem('token');
+        if (tokenString) {
+            const token = JSON.parse(tokenString);
+            const auth = token?.access_token;
+            if (!!auth) {
+                const header = { headers: { Authorization: `Bearer ${auth}` } };                
+                return header;
+            }
+        }
+    }
+
+
     _loaddata = async (tab) => {    
         this.openSpinner();
-        const response = await fetch(URL_MONGO_API[tab]);
+        const response = await fetch(URL_MONGO_API[tab], this._auth_header());
         const data = await response.json();
         this.setState({ Data: data, View: data, search: '', changes: {}, checkbx: false })
         this.hideSpinner();
