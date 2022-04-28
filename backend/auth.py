@@ -2,7 +2,7 @@ from typing import Optional, Dict
 from datetime import datetime, timedelta
 from fastapi import Request, Depends, HTTPException
 from fastapi.security import OAuth2PasswordBearer
-from jose import JWTError, jwt
+from jose import JWTError, jwt, ExpiredSignatureError
 from passlib.context import CryptContext
 from models import UserBase
 from config import Settings
@@ -47,7 +47,9 @@ async def get_current_user(request: Request, token: str = Depends(oauth2_scheme)
                              algorithms=[settings.ALGORITHM])
 
         user = payload.get("sub")
-
+        
+    except ExpiredSignatureError:
+        raise HTTPException(status_code=403, detail="token has been expired")
     except JWTError:
         raise HTTPException(status_code=400, detail="wrong token")
 

@@ -2,11 +2,10 @@ import React, { Component } from 'react'
 import config from '../config'
 import Table from './Table'
 import { FormModal, FormBulkModal, SpinerModal } from './Modal';
-
-const DEBUG = false;
+import { fetchWrapper } from '../helpers';
 
 const URL_MONGO_API = {
-    unicast: `${config.apiBasePath}/mongo/unicast`, 
+    unicast: `${config.apiBasePath}/mongo/unicast`,
     flowspec: `${config.apiBasePath}/mongo/flowspec`,
 };
 const URL_GORIB_API = {
@@ -17,9 +16,9 @@ const URL_GORIB_API = {
 class Bgp extends Component {
 
     constructor(props) {
-        super(props);        
-        this.state = { 
-            Tab: this.props.Tab,           
+        super(props);
+        this.state = {
+            Tab: this.props.Tab,
             Data: [],
             View: [],
             search: '',
@@ -32,32 +31,21 @@ class Bgp extends Component {
     }
 
 
-    _auth_header = () => {
-        const tokenString = localStorage.getItem('token');
-        if (tokenString) {
-            const token = JSON.parse(tokenString);
-            const auth = token?.access_token;
-            if (!!auth) {
-                const header = { headers: { Authorization: `Bearer ${auth}` } };                
-                return header;
-            }
-        }
-    }
-
-
-    _loaddata = async (tab) => {    
+    _loaddata = async (tab) => {
         this.openSpinner();
-        const response = await fetch(URL_MONGO_API[tab], this._auth_header());
-        const data = await response.json();
-        this.setState({ Data: data, View: data, search: '', changes: {}, checkbx: false })
+
+        const data = await fetchWrapper(URL_MONGO_API[tab]);
+        if (data)
+            this.setState({ Data: data, View: data, search: '', changes: {}, checkbx: false })
+
         this.hideSpinner();
     }
 
-    async UNSAFE_componentWillReceiveProps(nextProps) {       
-        if (nextProps.Tab !== this.props.Tab) {           
+    async UNSAFE_componentWillReceiveProps(nextProps) {
+        if (nextProps.Tab !== this.props.Tab) {
             await this._loaddata(nextProps.Tab);
         }
-      }
+    }
 
     async componentDidMount() {
         await this._loaddata(this.props.Tab);
@@ -66,27 +54,27 @@ class Bgp extends Component {
     openFormModal = () => {
         this.setState({
             isFormOpen: true
-        });        
+        });
     }
 
     hideFormModal = () => {
         this.setState({
             isFormOpen: false
-        });        
+        });
         delete this.state.index;
     }
 
     openBulkModal = () => {
         this.setState({
             isBulkOpen: true
-        });        
+        });
     }
 
     hideBulkModal = () => {
         this.setState({
             isBulkOpen: false
-        });                
-    }    
+        });
+    }
 
     openSpinner = () => {
         this.setState(() => ({ isFetching: true }));
@@ -100,42 +88,42 @@ class Bgp extends Component {
         const { Data, View, changes } = this.state;
         const px = View[index];
 
-        const newData = Data.filter((item) => { 
-            return !(px.src===item.src && px.prefix_len===item.prefix_len);
+        const newData = Data.filter((item) => {
+            return !(px.src === item.src && px.prefix_len === item.prefix_len);
         })
-        const newView = View.filter((char, i) => { 
+        const newView = View.filter((char, i) => {
             return i !== index;
         })
 
         // if you've just created a new prefix and then delete it, no change happened
         const src = View[index].src;
-        if (changes[src]==="new"){
+        if (changes[src] === "new") {
             delete changes[src];
         }
         else {
             changes[src] = "del";
         }
 
-        this.setState({ Data: newData, View: newView, changes: changes })        
+        this.setState({ Data: newData, View: newView, changes: changes })
     }
 
     pxEdit = index => {
-        this.setState({            
+        this.setState({
             index: index,
-        })        
-        this.openFormModal();        
-    }    
+        })
+        this.openFormModal();
+    }
 
     handleFormSubmit = (px, viewindex) => {
         const { Data, View, changes } = this.state;
-        if (viewindex != null) {             
+        if (viewindex != null) {
             const dataindex = Data.indexOf(View[viewindex]); // find Data.index for the old unchanged data
             const newData = Data.slice();
-            const newView = View.slice();                                
+            const newView = View.slice();
 
             newView[viewindex] = px; // replace old data with a new one in the View array
             newData[dataindex] = px; // replace old data with a new one in the Data array
-                        
+
             changes[px.src] = "edit";
             this.setState({ Data: newData, View: newView, changes: changes });
         }
@@ -146,28 +134,28 @@ class Bgp extends Component {
         this.hideFormModal();
     }
 
-    handleFormBulkSubmit = (bulkdata) => {     
-        const { Data } = this.state;    
+    handleFormBulkSubmit = (bulkdata) => {
+        const { Data } = this.state;
         const changes = {}
 
         this.hideBulkModal();
         this.setState(() => ({ isFetching: true }));
-        
+
         const newData = bulkdata.filter((b) => !Data.find((a) => a.src === b.src)); // uniqueness
         newData.forEach(el => changes[el.src] = "new");
-        
+
         const fullData = [...Data, ...newData];
-        
-        this.setState({ 
-            Data: fullData, 
+
+        this.setState({
+            Data: fullData,
             View: fullData,
             changes: changes,
             isFetching: false,
-        });                
+        });
     }
 
     handleSubmit = () => {
-        const { Data, changes } = this.state;                
+        const { Data, changes } = this.state;
         this.setState(() => ({ isFetching: true }));
 
         if (Object.keys(changes).length > 10) {
@@ -175,9 +163,9 @@ class Bgp extends Component {
             const arrnew = []
             const arredit = []
             const arrdel = []
-            
-            for (let i in changes){
-                switch(changes[i]){
+
+            for (let i in changes) {
+                switch (changes[i]) {
                     case "new":
                         arrnew.push(i);
                         break;
@@ -194,7 +182,7 @@ class Bgp extends Component {
                 }
             }
 
-            function prepareBulkData(arr){
+            function prepareBulkData(arr) {
                 const BulkData = [];
                 arr.forEach((i) => {
                     const index = Data.findIndex(x => x.src === i);
@@ -210,7 +198,7 @@ class Bgp extends Component {
 
             const DataEdit = prepareBulkData(arredit);
             DataEdit.forEach((px) => this.restPutData(px));
-        } 
+        }
         else {
             // one_by_one processing 
             for (let i in changes) {
@@ -233,9 +221,9 @@ class Bgp extends Component {
         this.setState({ changes: {}, isFetching: false });
     }
 
-    stripData = (value) => {                
+    stripData = (value) => {
         const View = this.state.Data.filter((item) => item.src.startsWith(value));
-        this.setState ({View: View, search: value});
+        this.setState({ View: View, search: value });
     }
 
     handleSearchChange = (event) => {
@@ -244,204 +232,91 @@ class Bgp extends Component {
     }
 
     handleCheckbx = () => {
-        this.setState({checkbx: !this.state.checkbx})
+        this.setState({ checkbx: !this.state.checkbx })
     }
 
+    // api calls
     handleDB2RIB = async () => {
-        this.setState(() => ({ isFetching: true }));        
-        try {
-            const res = await fetch(`${URL_GORIB_API[this.props.Tab]}/db2rib`);
-            if (!res.ok) {
-                const message = `An error has occured: ${res.status} - ${res.statusText}`;
-                throw new Error(message);
-            }            
-            
-            this.setState({ isFetching: false, checkbx: false })
-
-        } catch (err) {
-            alert(err.message);
-        }
-        this.setState({ isFetching: false });
+        this.setState(() => ({ isFetching: true }));
+        await fetchWrapper(`${URL_GORIB_API[this.props.Tab]}/db2rib`);
+        this.setState({ isFetching: false, checkbx: false });
     }
-    
+
     handleRIB2DB = async () => {
         this.setState(() => ({ isFetching: true }));
-        try {
-            const res = await fetch(`${URL_GORIB_API[this.props.Tab]}/rib2db`);
-            if (!res.ok) {
-                const message = `An error has occured: ${res.status} - ${res.statusText}`;
-                throw new Error(message);
-            }            
-            
-            this.loaddata();
-
-        } catch (err) {
-            alert(err.message);
-        }
-        this.setState({ isFetching: false });
+        await fetchWrapper(`${URL_GORIB_API[this.props.Tab]}/rib2db`);
+        this._loaddata(this.props.Tab);
+        this.setState({ isFetching: false, checkbx: false });
     }
 
     handleClearDB = async () => {
-        this.setState(() => ({ isFetching: true }));        
-        try {
-            const res = await fetch(`${URL_GORIB_API[this.props.Tab]}/cleardb`);
-            if (!res.ok) {
-                const message = `An error has occured: ${res.status} - ${res.statusText}`;
-                throw new Error(message);
-            }
-
-            await res.json();
-            //alert("DB is empty");
-            this.loaddata();
-
-        } catch (err) {
-            alert(err.message);
-        }
-        this.setState({ isFetching: false });
+        this.setState(() => ({ isFetching: true }));
+        await fetchWrapper(`${URL_GORIB_API[this.props.Tab]}/cleardb`, 'GET');
+        this._loaddata(this.props.Tab);
+        this.setState({ isFetching: false, checkbx: false });
     }
 
     handleClearRIB = async () => {
         this.setState(() => ({ isFetching: true }));
-        try {
-            const res = await fetch(`${URL_GORIB_API[this.props.Tab]}/delallrib`);
-            if (!res.ok) {
-                const message = `An error has occured: ${res.status} - ${res.statusText}`;
-                throw new Error(message);
-            }
+        await fetchWrapper(`${URL_GORIB_API[this.props.Tab]}/delallrib`);
+        this.setState({ isFetching: false, checkbx: false });
+    }
 
-            await res.json();
-            this.setState({ isFetching: false, checkbx: false })
-            //alert("RIB is empty");
-
-        } catch (err) {
-            alert(err.message);
-        }        
-        this.setState({ isFetching: false });
-    }    
-
-    restPostData = async (px, bulk=false) => {
-        try {
-            const URL = bulk ? `${URL_MONGO_API[this.props.Tab]}/bulk` : `${URL_MONGO_API[this.props.Tab]}`;
-            const res = await fetch(URL, {
-                method: "post",
-                headers: {
-                    "Content-Type": "application/json",                    
-                },
-                body: JSON.stringify(px),
-            });
-
-            if (!res.ok) {
-                const message = `An error has occured: ${res.status} - ${res.statusText}`;
-                throw new Error(message);
-            }
-
-            const data = await res.json();
-
-            if (DEBUG) {
-                const result = {
-                    status: res.status + "-" + res.statusText,
-                    headers: {
-                        "Content-Type": res.headers.get("Content-Type"),
-                        "Content-Length": res.headers.get("Content-Length"),
-                    },
-                    data: data,
-                };
-                alert(JSON.stringify(result, null, 4));
-            }
-
-        } catch (err) {
-            alert(err.message);
-        }
+    restPostData = async (px, bulk = false) => {
+        const URL = bulk ? `${URL_MONGO_API[this.props.Tab]}/bulk` : `${URL_MONGO_API[this.props.Tab]}`;
+        await fetchWrapper(URL, 'POST', px)
     }
 
     restPutData = async (px) => {
         if (px.src) {
-            try {
-                const response = await fetch(`${URL_MONGO_API[this.props.Tab]}/${px.src}`, {
-                    method: "put",
-                    headers: {
-                        "Content-Type": "application/json",
-                    },
-                    body: JSON.stringify(px),
-                });
-
-                if (!response.ok) {
-                    const message = `An error has occured: ${response.status} - ${response.statusText}`;
-                    throw new Error(message);
-                }
-
-                const data = await response.json();
-
-                if (DEBUG) {
-                    const result = {
-                        status: response.status + "-" + response.statusText,
-                        headers: { "Content-Type": response.headers.get("Content-Type") },
-                        data: data,
-                    };
-                    alert(JSON.stringify(result, null, 4));
-                }
-            } catch (err) {
-                alert(err)
-            }
+            await fetchWrapper(`${URL_MONGO_API[this.props.Tab]}/${px.src}`, 'PUT', px);
         }
     }
 
     restDelData = async (src) => {
         if (src) {
-            try {
-                const response = await fetch(`${URL_MONGO_API[this.props.Tab]}/${src}`, { method: "delete" });
-                //const data = await response.json();
-                if (DEBUG) {
-                    const result = {
-                        status: response.status,
-                    };
-
-                    alert(JSON.stringify(result, null, 4));
-                }
-            } catch (err) {
-                alert(err);
-            }
+            await fetchWrapper(`${URL_MONGO_API[this.props.Tab]}/${src}`, 'DELETE');
         }
     }
 
-
+    // render
     render() {
         const { Data, View, changes, index, isFormOpen, isBulkOpen, search, checkbx, isFetching } = this.state;
         const Tab = this.props.Tab;
-                
+
         const searchStyle = {
             //      margin: '20px 0px',
-              }
+        }
         const search_floater = {
             position: 'sticky',
-            top: '20px',          
-            left: '20px',   
-            margin: '20px 0px',         
+            top: '20px',
+            left: '20px',
+            margin: '20px 0px',
         }
         const info_style = {
             position: 'fixed',
-            top: '10px',          
-            right: '20px',   
-            margin: '20px 0px',         
+            top: '10px',
+            right: '20px',
+            margin: '20px 0px',
         }
         const buttonStyle = {
             margin: '0px 5px',
-        }   
+        }
         const buttonsRowStyle = {
-            margin: '20px 0px',                        
+            margin: '20px 0px',
         }
         const checkStyle = {
             margin: '0px 10px',
-        }           
+        }
         const checkLabelStyle = {
             margin: '-20px 20px',
             color: 'purple',
             //fontStyle: 'oblique',  
-            opacity: '0.7',          
+            opacity: '0.7',
         }
-        return (                        
-            <div className="container">                
-                {/* search box */}                    
+        return (
+            <div className="container">
+                {/* search box */}
                 <div className="search" style={search_floater}> <i className="fa fa-search"></i>
                     <div className="input-group">
                         <div className="form-floating">
@@ -452,8 +327,8 @@ class Bgp extends Component {
                                 id="search"
                                 value={search || ''}
                                 onChange={this.handleSearchChange}
-                                style={searchStyle} 
-                                disabled={ Data.length > config.serchFieldLimit }/>
+                                style={searchStyle}
+                                disabled={Data.length > config.serchFieldLimit} />
                             <label htmlFor="search" style={searchStyle}>Prefix search</label>
                         </div>
                     </div>
@@ -469,29 +344,29 @@ class Bgp extends Component {
                         <label>Tab: {Tab}</label>
                     </div>
                 </div>
-                
-                <Table Tab={Tab} Data={View} changes={changes} pxRemove={this.pxRemove} pxEdit={this.pxEdit}/>
-                
-                <div className="buttons" style={buttonsRowStyle}>                    
-                    { Tab === "unicast" && <button onClick={this.openFormModal} style={buttonStyle} type="button" className="btn btn-outline-primary">New Prefix</button> }
-                    { Tab === "flowspec" && <button onClick={this.openFormModal} style={buttonStyle} type="button" className="btn btn-outline-primary">New Policy</button>}
-                    { Tab === "unicast" && <button onClick={this.openBulkModal} style={buttonStyle} type="button" className="btn btn-outline-primary">Bulk Load</button> }
+
+                <Table Tab={Tab} Data={View} changes={changes} pxRemove={this.pxRemove} pxEdit={this.pxEdit} />
+
+                <div className="buttons" style={buttonsRowStyle}>
+                    {Tab === "unicast" && <button onClick={this.openFormModal} style={buttonStyle} type="button" className="btn btn-outline-primary">New Prefix</button>}
+                    {Tab === "flowspec" && <button onClick={this.openFormModal} style={buttonStyle} type="button" className="btn btn-outline-primary">New Policy</button>}
+                    {Tab === "unicast" && <button onClick={this.openBulkModal} style={buttonStyle} type="button" className="btn btn-outline-primary">Bulk Load</button>}
                     <button onClick={(e) => this._loaddata(Tab, e)} style={buttonStyle} type="button" className="btn btn-outline-secondary">ReLoad</button>
-                    <button onClick={this.handleSubmit} disabled={Object.keys(changes).length===0} style={buttonStyle} type="button" className="btn btn-outline-danger">Save to DB</button>                    
+                    <button onClick={this.handleSubmit} disabled={Object.keys(changes).length === 0} style={buttonStyle} type="button" className="btn btn-outline-danger">Save to DB</button>
                 </div>
                 <div className="buttons" style={buttonsRowStyle}>
-                    <div className="form-floating">                        
+                    <div className="form-floating">
                         <input onChange={this.handleCheckbx} style={checkStyle} checked={checkbx} className="form-check-input" type="checkbox" id="checkbox_id" name="checkbx"></input>
                         <label htmlFor="checkbx" style={checkLabelStyle}>enable DB/RIB actions</label>
                     </div>
                     <button onClick={this.handleRIB2DB} disabled={!checkbx} style={buttonStyle} type="button" className="btn btn-outline-dark">{'RIB => DB'}</button>
-                    <button onClick={this.handleDB2RIB} disabled={!checkbx || Object.keys(changes).length!==0} style={buttonStyle} type="button" className="btn btn-outline-dark">{'DB => RIB'}</button>
+                    <button onClick={this.handleDB2RIB} disabled={!checkbx || Object.keys(changes).length !== 0} style={buttonStyle} type="button" className="btn btn-outline-dark">{'DB => RIB'}</button>
                     <button onClick={this.handleClearDB} disabled={!checkbx} style={buttonStyle} type="button" className="btn btn-outline-dark">Clear DB</button>
                     <button onClick={this.handleClearRIB} disabled={!checkbx} style={buttonStyle} type="button" className="btn btn-outline-dark">Clear RIB</button>
                 </div>
-                <FormModal Tab={Tab} Data={View} changes={changes} index={index} isOpen={isFormOpen} hideModal={this.hideFormModal} handleFormSubmit={this.handleFormSubmit}/>                           
-                <FormBulkModal isOpen={isBulkOpen} hideModal={this.hideBulkModal} handleFormSubmit={this.handleFormBulkSubmit}  openSpinner={this.openSpinner} hideSpinner={this.hideSpinner}/>
-                <SpinerModal show={isFetching}/>                  
+                <FormModal Tab={Tab} Data={View} changes={changes} index={index} isOpen={isFormOpen} hideModal={this.hideFormModal} handleFormSubmit={this.handleFormSubmit} />
+                <FormBulkModal isOpen={isBulkOpen} hideModal={this.hideBulkModal} handleFormSubmit={this.handleFormBulkSubmit} openSpinner={this.openSpinner} hideSpinner={this.hideSpinner} />
+                <SpinerModal show={isFetching} />
             </div>
         )
     }
