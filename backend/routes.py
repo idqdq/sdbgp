@@ -104,14 +104,14 @@ async def getFlowspecAll(current_user: UserBase = Depends(get_current_user)):
 
 
 @app.get("/mongo/unicast/{src}", response_model=PathDataClass)  
-async def getPx(src: str):
+async def getPx(src: str, current_user: UserBase = Depends(get_current_user)):
     if (px := await app.db.unicast.find_one({"src": src})) is not None:
         px.pop("_id")
         return PathDataClass(**px)
     raise HTTPException(status_code=404, detail=f"Prefix with ID: {src} not found")
 
 @app.get("/mongo/flowspec/{src:path}", response_model=FlowSpecDataClass)  
-async def getFlowspec(src: str):
+async def getFlowspec(src: str, current_user: UserBase = Depends(get_current_user)):
     if (px := await app.db.flowspec.find_one({"src": src})) is not None:
         px.pop("_id")
         return FlowSpecDataClass(**px)
@@ -119,18 +119,18 @@ async def getFlowspec(src: str):
 
 
 @app.post("/mongo/unicast")
-async def createPx(px: PathDataClass = Body(...)):        
+async def createPx(px: PathDataClass = Body(...), current_user: UserBase = Depends(get_current_user)):        
     await app.db.unicast.insert_one(jsonable_encoder(px))
     return JSONResponse(status_code=status.HTTP_201_CREATED)
 
 @app.post("/mongo/flowspec")
-async def createFlowspec(px: FlowSpecDataClass = Body(...)):       
+async def createFlowspec(px: FlowSpecDataClass = Body(...), current_user: UserBase = Depends(get_current_user)):       
     await app.db.flowspec.insert_one(jsonable_encoder(px))    
     return JSONResponse(status_code=status.HTTP_201_CREATED)
 
 
 @app.post("/mongo/unicast/bulk")
-async def createBulkPx(pxlist: List[PathDataClass]):
+async def createBulkPx(pxlist: List[PathDataClass], current_user: UserBase = Depends(get_current_user)):
     pxlist = jsonable_encoder(pxlist)    
     
     for px in pxlist:
@@ -139,7 +139,7 @@ async def createBulkPx(pxlist: List[PathDataClass]):
     return JSONResponse(status_code=status.HTTP_201_CREATED, content="Ok")
 
 @app.put("/mongo/unicast/{src}", response_description="Update prefix", response_model=PathDataClass)
-async def updatePx(src: str, px: PathDataClass = Body(...)):
+async def updatePx(src: str, px: PathDataClass = Body(...), current_user: UserBase = Depends(get_current_user)):
     px = jsonable_encoder(px)
     
     if (existed_px := await app.db.unicast.find_one({"src": src})) is not None:        
@@ -155,7 +155,7 @@ async def updatePx(src: str, px: PathDataClass = Body(...)):
     return JSONResponse(status_code=status.HTTP_200_OK, content=result)
 
 @app.put("/mongo/flowspec/{src:path}", response_description="Update flowspec policy", response_model=FlowSpecDataClass)
-async def updateFlowspec(src: str, px: FlowSpecDataClass = Body(...)):
+async def updateFlowspec(src: str, px: FlowSpecDataClass = Body(...), current_user: UserBase = Depends(get_current_user)):
     px = jsonable_encoder(px)    
 
     if (existed_px := await app.db.flowspec.find_one({"src": src})) is not None:        
@@ -172,7 +172,7 @@ async def updateFlowspec(src: str, px: FlowSpecDataClass = Body(...)):
 
 
 @app.delete("/mongo/unicast/{src}", response_description="Delete Prefix")
-async def deletePx(src: str):
+async def deletePx(src: str, current_user: UserBase = Depends(get_current_user)):
     delete_res = await app.db.unicast.delete_one({"src": src})
     if delete_res.deleted_count == 1:
         return Response(status_code=status.HTTP_204_NO_CONTENT)
@@ -180,7 +180,7 @@ async def deletePx(src: str):
     raise HTTPException(status_code=404, detail=f"Prefix {src} not found")
 
 @app.delete("/mongo/flowspec/{src:path}", response_description="Delete flowspec policy")
-async def deleteFlowspec(src: str):
+async def deleteFlowspec(src: str, current_user: UserBase = Depends(get_current_user)):
     delete_res = await app.db.flowspec.delete_one({"src": src})
     if delete_res.deleted_count == 1:
         return Response(status_code=status.HTTP_204_NO_CONTENT)
@@ -190,43 +190,43 @@ async def deleteFlowspec(src: str):
 
 ### GoBGP API Section ###
 @app.get("/gobgp/unicast/list") # returns all the prefixes from within gobgp
-async def gobgp_listall():    
+async def gobgp_listall(current_user: UserBase = Depends(get_current_user)):    
     result = ListPathUnicast()
     return JSONResponse(status_code=status.HTTP_200_OK, content=result)
 
 @app.get("/gobgp/flowspec/list") # returns all the prefixes from within gobgp
-async def gobgp_listall_flowspec():    
+async def gobgp_listall_flowspec(current_user: UserBase = Depends(get_current_user)):    
     result = ListPathFlowSpec()
     return JSONResponse(status_code=status.HTTP_200_OK, content=jsonable_encoder(result))
 
 
 @app.post("/gobgp/unicast/add") # adds prefix into gobgp
-async def gobgp_addpath(px: PathDataClass = Body(...)):
+async def gobgp_addpath(px: PathDataClass = Body(...), current_user: UserBase = Depends(get_current_user)):
     AddPathUnicast(px)
 
 @app.post("/gobgp/flowspec/add") # adds prefix into gobgp
-async def gobgp_addpath_flowspec(px: FlowSpecDataClass = Body(...)):
+async def gobgp_addpath_flowspec(px: FlowSpecDataClass = Body(...), current_user: UserBase = Depends(get_current_user)):
     AddPathFlowSpec(px)
 
 
 @app.post("/gobgp/unicast/del") # deletes prefix from gobgp
-async def gobgp_delpath(px: PathDataClass = Body(...)):
+async def gobgp_delpath(px: PathDataClass = Body(...), current_user: UserBase = Depends(get_current_user)):
     DelPathUnicast(px)
 
 @app.post("/gobgp/flowspec/del") # deletes prefix from gobgp
-async def gobgp_delpath_flowspec(px: FlowSpecDataClass = Body(...)):
+async def gobgp_delpath_flowspec(px: FlowSpecDataClass = Body(...), current_user: UserBase = Depends(get_current_user)):
     DelPathFlowSpec(px)
 
 
 @app.get("/gobgp/unicast/delallrib") # Deletes all the unicast prefixes from GoBGP
-async def gobgp_unicast_delallrib():
+async def gobgp_unicast_delallrib(current_user: UserBase = Depends(get_current_user)):
     paths = ListPathUnicast()
     if paths:
         for px in paths:                                    
             DelPathUnicast(PathDataClass(**px))
 
 @app.get("/gobgp/flowspec/delallrib") # Deletes all the flowspec prefixes from GoBGP
-async def gobgp_flowspec_delallrib():
+async def gobgp_flowspec_delallrib(current_user: UserBase = Depends(get_current_user)):
     paths = ListPathFlowSpec()
     if paths:
         for px in paths:                                    
@@ -235,7 +235,7 @@ async def gobgp_flowspec_delallrib():
 
 ### GoBGP to/from Mongo API section ###
 @app.get("/gobgp/unicast/rib2db") # Loads all the unicast prefixes from GoBGP to Mongo
-async def gobgp_unicast_rib2db():    
+async def gobgp_unicast_rib2db(current_user: UserBase = Depends(get_current_user)):    
     paths = ListPathUnicast()
     if paths:
         await app.db.unicast.drop({})
@@ -244,7 +244,7 @@ async def gobgp_unicast_rib2db():
     return JSONResponse(status_code=status.HTTP_200_OK, content="OK")       
 
 @app.get("/gobgp/flowspec/rib2db") # Loads all the flowspec prefixes from GoBGP to Mongo
-async def gobgp_flowspec_rib2db():    
+async def gobgp_flowspec_rib2db(current_user: UserBase = Depends(get_current_user)):    
     paths = ListPathFlowSpec()
     if paths:
         await app.db.flowspec.drop({})
@@ -254,24 +254,24 @@ async def gobgp_flowspec_rib2db():
 
 
 @app.get("/gobgp/unicast/db2rib") # Puts all the unicast prefixes from Mongo to GoBGP
-async def gobgp_unicast_db2rib():
+async def gobgp_unicast_db2rib(current_user: UserBase = Depends(get_current_user)):
     async for px in app.db.unicast.find({}): 
         px.pop("_id")       
         AddPathUnicast(PathDataClass(**px))
 
 @app.get("/gobgp/flowspec/db2rib") # Puts all the flowspec prefixes from Mongo to GoBGP
-async def gobgp_flowspec_db2rib():
+async def gobgp_flowspec_db2rib(current_user: UserBase = Depends(get_current_user)):
     async for px in app.db.flowspec.find({}): 
         px.pop("_id")       
         AddPathFlowSpec(FlowSpecDataClass(**px))
 
 
 @app.get("/gobgp/unicast/cleardb") # Drop the unicast Mongo table (collection)
-async def gobgp_unicast_cleardb():    
+async def gobgp_unicast_cleardb(current_user: UserBase = Depends(get_current_user)):    
     await app.db.unicast.drop({})    
     return JSONResponse(status_code=status.HTTP_200_OK, content="OK")    
 
 @app.get("/gobgp/flowspec/cleardb") # Drop the flowspec Mongo table (collection)
-async def gobgp_flowspec_cleardb():    
+async def gobgp_flowspec_cleardb(current_user: UserBase = Depends(get_current_user)):    
     await app.db.flowspec.drop({})    
     return JSONResponse(status_code=status.HTTP_200_OK, content="OK")       
