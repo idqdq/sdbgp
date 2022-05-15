@@ -13,7 +13,7 @@ COPY frontend/ /app/
 # docker build shouild be run with --build-arg REACT_APP_API_BASE_PATH=http://[backend_api] or with related args wothin docker-compose.yml
 ARG REACT_APP_API_BASE_PATH
 
-ENV REACT_APP_API_BASE_PATH=$REACT_APP_API_BASE_PATH
+ENV REACT_APP_API_BASE_PATH=${REACT_APP_API_BASE_PATH}
 
 RUN npm run build
 

@@ -1,8 +1,8 @@
 import { Tabs, Tab } from "react-bootstrap";
 import Container from "react-bootstrap/Container";
 
-const AppTabs = ({activeKey, onSelect}) => {
-    const user = 'superuser';
+const AppTabs = ({activeKey, onSelect, isAdmin}) => {
+    //const user = 'superuser';
     return (
       <Tabs
         id="controlled-tab-example"
@@ -25,7 +25,12 @@ const AppTabs = ({activeKey, onSelect}) => {
           </Container>
         </Tab>
         
-        {user ==='superuser' && <Tab eventKey="logging" title="Logg" >
+        {isAdmin && <Tab eventKey="logging" title="Logg" >
+          <Container>
+          </Container>
+        </Tab>}
+
+        {isAdmin && <Tab eventKey="admin" title="Admin" >
           <Container>
           </Container>
         </Tab>}

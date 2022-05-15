@@ -5,6 +5,10 @@ const _refreshPage = () =>{
     window.location.reload(); 
 }
 
+const removeToken = () => {
+    localStorage.removeItem('token');                
+};
+
 async function fetchWrapper(url, method, body) {
     // the function wraps the fetch() method with two additional entities
     // pre: added auth header from the token
@@ -57,4 +61,4 @@ async function fetchWrapper(url, method, body) {
     }
 } 
          
-export { fetchWrapper };
+export { fetchWrapper, removeToken };
