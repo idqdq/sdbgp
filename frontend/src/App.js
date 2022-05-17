@@ -10,23 +10,18 @@ class App extends Component {
     state = {
         Tab: 'unicast',            
         isAdmin: false,   
-    }
-    
-    async componentDidMount(){
-        console.log("didmount");
-        if (this.getToken()) {
-            const isAdmin = await this.isAdmin()
-            this.setState(() => ({ isAdmin: isAdmin }));            
-        }
-    }
+    }    
 
-    handleTabSelect = (tab) => {
-        this.setState(()=>({Tab: tab}));
+    async componentDidMount(){        
+        if (this.getToken()) {                        
+            this.setState(() => ({ isAdmin: this._isAdmin() }));          
+        }
     }
 
     setToken = (token) => {
         if (token) {
-            localStorage.setItem('token', token)            
+            localStorage.setItem('token', token)
+            this.setState(() => ({ isAdmin: this._isAdmin() }));
             this.forceUpdate(); // rerender component after successfull login
         }
     }
@@ -38,14 +33,18 @@ class App extends Component {
             return token?.access_token;
         }
     }
-    
 
-    isAdmin = async () => {
+    handleTabSelect = (tab) => {
+        this.setState(()=>({Tab: tab}));
+    }
+
+    _isAdmin = async () => {
         const data = await fetchWrapper(`${config.apiBasePath}/me`);
         if (data){            
             return data?.is_superuser;
         }
     }
+
 
     render() {
         

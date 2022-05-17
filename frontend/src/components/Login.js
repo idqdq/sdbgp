@@ -26,8 +26,8 @@ const _authUser = async (username, password) => {
         const data = await res.json();
         return JSON.stringify(data);
 
-    } catch (err) {
-        alert(err.message);
+    } catch (err) {        
+        //alert(err.message);
     }
 }
 
@@ -36,12 +36,16 @@ export default function Login({ setToken }) {
 
     const [username, setUserName] = useState();
     const [password, setPassword] = useState();
+    const [err, setErr] = useState(false);
 
     const handleSubmit = async e => {
         e.preventDefault();        
         const token = await _authUser(username, password);
         if (token)
-            setToken(token);
+            setToken(token);            
+        else {
+            setErr(true);
+        }
     }
 
     return (
@@ -77,6 +81,8 @@ export default function Login({ setToken }) {
                         </div>
                     </div>
                     <input type="button" value="Submit" onClick={handleSubmit} className="btn btn-outline-success" />
+                    { err && <div style={{color: "red"}}>Incorrect username or password</div>}
+                    
                 </form>
             </Modal.Body>
         </Modal>
