@@ -1,8 +1,7 @@
 import { Tabs, Tab } from "react-bootstrap";
 import Container from "react-bootstrap/Container";
 
-const AppTabs = ({activeKey, onSelect, isAdmin}) => {
-    //const user = 'superuser';
+const AppTabs = ({activeKey, onSelect, isAdmin}) => {    
     return (
       <Tabs
         id="controlled-tab-example"
@@ -13,7 +12,7 @@ const AppTabs = ({activeKey, onSelect, isAdmin}) => {
         <Tab eventKey="unicast" title="BGP Unicast">
           <Container>
               <div>
-              <h4>BGP Unicast</h4>
+                <h4>BGP Unicast</h4>
               </div>
           </Container>
         </Tab>
@@ -26,8 +25,7 @@ const AppTabs = ({activeKey, onSelect, isAdmin}) => {
         </Tab>
         
         {isAdmin && <Tab eventKey="logging" title="Logg" >
-          <Container>
-          </Container>
+          <Container />                        
         </Tab>}
 
         {isAdmin && <Tab eventKey="admin" title="Admin" >

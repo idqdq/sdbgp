@@ -5,8 +5,9 @@ const _refreshPage = () =>{
     window.location.reload(); 
 }
 
-const removeToken = () => {
-    localStorage.removeItem('token');                
+const logOut = () => {
+    localStorage.removeItem('token');
+    localStorage.removeItem('user');
 };
 
 async function fetchWrapper(url, method, body) {
@@ -61,4 +62,4 @@ async function fetchWrapper(url, method, body) {
     }
 } 
          
-export { fetchWrapper, removeToken };
+export { fetchWrapper, logOut };

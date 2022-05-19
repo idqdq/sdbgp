@@ -13,15 +13,16 @@ class App extends Component {
     }    
 
     async componentDidMount(){        
-        if (this.getToken()) {                        
-            this.setState(() => ({ isAdmin: this._isAdmin() }));          
+        if (this.getToken()) {   
+            await this.setUser();                             
         }
     }
 
-    setToken = (token) => {
+    setToken = async (token) => {
         if (token) {
             localStorage.setItem('token', token)
-            this.setState(() => ({ isAdmin: this._isAdmin() }));
+            await this.setUser();
+
             this.forceUpdate(); // rerender component after successfull login
         }
     }
@@ -34,15 +35,18 @@ class App extends Component {
         }
     }
 
-    handleTabSelect = (tab) => {
-        this.setState(()=>({Tab: tab}));
+    _fetchUser = async () => {
+        return await fetchWrapper(`${config.apiBasePath}/me`);   
     }
 
-    _isAdmin = async () => {
-        const data = await fetchWrapper(`${config.apiBasePath}/me`);
-        if (data){            
-            return data?.is_superuser;
-        }
+    setUser = async () => {
+        const user = await this._fetchUser(); // user's properties comes from the backend for security purposes
+        localStorage.setItem('user', user?.user);
+        this.setState(() => ({ isAdmin: user?.is_superuser }));
+    }
+   
+    handleTabSelect = (tab) => {
+        this.setState(()=>({Tab: tab}));
     }
 
 
